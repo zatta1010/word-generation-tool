@@ -260,6 +260,7 @@ function generateResult() {
 function disableEntry () {
 	dodgeRange.disabled = !(method.value == "avoidMinimalPair");
 	customVocabList.disabled = !(vocab.value == "custom");
+	numberOfWords.disabled = !(vocab.value == "no");
 }
 
 addEventListener("change", () => {
@@ -279,7 +280,7 @@ btnDeleteResult.addEventListener("click", () => {
 	if (confirm("本当に削除しますか？")) generatedWords = [], txtEdit.value = result.innerText = "";
 });
 
-result.addEventListener("dblclick", () => {
+function edit() {
 	result.hidden = true;
 
 	if (result.innerHTML.includes("<table>")) {
@@ -291,9 +292,13 @@ result.addEventListener("dblclick", () => {
 	}
 
 	btnApplyEdit.hidden = false;
+}
+
+result.addEventListener("dblclick", () => {
+	edit();
 });
 
-btnApplyEdit.addEventListener("click", () => {
+function applyEdit() {
 	result.hidden = false;
 
 	if (result.innerHTML.includes("<table>")) {
@@ -337,6 +342,18 @@ btnApplyEdit.addEventListener("click", () => {
 	}
 
 	btnApplyEdit.hidden = true;
+}
+
+btnApplyEdit.addEventListener("click", () => {
+	applyEdit();
+});
+
+txtEdit.addEventListener("change", () => {
+	applyEdit();
+});
+
+addEventListener("keydown", e => {
+	if (e.ctrlKey && e.key == "Enter") applyEdit();
 });
 
 function selectDictionary() {
