@@ -26,7 +26,6 @@ customVocabList.value = "人\nする\n物\n事";
 disableEntry();
 
 let generatedWords = [];
-let displayingWords = [];
 
 const VOCAB_LIST = {
 	swadesh: ["私", "君 / 貴方", "彼", "私たち", "君たち", "彼ら", "これ", "あれ", "ここ", "そこ", "誰",
@@ -245,40 +244,37 @@ function isValid(word) {
 }
 
 function generateResult() {
-	if (!result.hidden && consonant.value && vowel.value && 1 <= dodgeRange.value && dodgeRange.value <=100 && 1 <= minimum.value && minimum.value <= maximum.value && maximum.value <= 10) {
-		cvlv = customVocabList.value;
-
-		if (cvlv) VOCAB_LIST.custom = cvlv.split("\n");
-		generate[method.value]();
-
-		selectDictionary();
-	} else {
-		alert("入力が不正です");
+	if (!result.hidden) {
+		if (numberOfWords.value || vocab.value !== "no") {
+			if (1 <= minimum.value && minimum.value <= maximum.value && maximum.value <= 10) {
+				if ((method.value == "avoidMinimalPair" && 1 <= dodgeRange.value && dodgeRange.value <= 100) || method.value !== "avoidMinimalPair") {
+					if (consonant.value && vowel.value) {
+						cvlv = customVocabList.value;
+				
+						if (cvlv) VOCAB_LIST.custom = cvlv.split("\n");
+						generate[method.value]();
+				
+						selectDictionary();
+					} else {
+						alert("子音または母音が不正です");
+					}
+				} else {
+					alert("ミニマルペアの回避範囲が不正です");
+				}
+			} else {
+				alert("文字数の範囲が不正です");
+			}
+		} else {
+				alert("生成する単語数が不正です");
+		}
 	}
 }
 
-function disableEntry () {
+function disableEntry() {
 	dodgeRange.disabled = !(method.value == "avoidMinimalPair");
 	customVocabList.disabled = !(vocab.value == "custom");
 	numberOfWords.disabled = !(vocab.value == "no");
 }
-
-addEventListener("change", () => {
-	disableEntry();
-});
-
-generatingBtn.addEventListener("click", () => {
-	generateResult();
-});
-
-copyBtnResult.addEventListener("click", () => {
-	navigator.clipboard.writeText(result.innerText);
-	alert("結果をコピーしました");
-});
-
-btnDeleteResult.addEventListener("click", () => {
-	if (confirm("本当に削除しますか？")) generatedWords = [], txtEdit.value = result.innerText = "";
-});
 
 function edit() {
 	result.hidden = true;
@@ -293,10 +289,6 @@ function edit() {
 
 	btnApplyEdit.hidden = false;
 }
-
-result.addEventListener("dblclick", () => {
-	edit();
-});
 
 function applyEdit() {
 	result.hidden = false;
@@ -343,18 +335,6 @@ function applyEdit() {
 
 	btnApplyEdit.hidden = true;
 }
-
-btnApplyEdit.addEventListener("click", () => {
-	applyEdit();
-});
-
-txtEdit.addEventListener("change", () => {
-	applyEdit();
-});
-
-addEventListener("keydown", e => {
-	if (e.ctrlKey && e.key == "Enter") applyEdit();
-});
 
 function selectDictionary() {
 	txtEdit.value = tableEdit.innerText = result.innerText = "";
