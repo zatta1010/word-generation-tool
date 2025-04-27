@@ -80,6 +80,10 @@ input[type="submit"]:hover {
   margin-top: 10px;
 }
 
+*:disabled {
+	color: #888;
+}
+
 table {
   border-collapse: collapse;
 }
