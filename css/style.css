@@ -84,6 +84,12 @@ input[type="submit"]:hover {
 	color: #888;
 }
 
+input[type="submit"]:disabled {
+	background-color: #ccc;
+	color:#fff;
+	cursor: default;
+}
+
 table {
   border-collapse: collapse;
 }
