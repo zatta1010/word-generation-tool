@@ -44,6 +44,21 @@
 			<input id="not-include-last" type="text" value="t s k m p n l">
 		</label>
 		<label>
+			<p>語彙リスト：</p>
+			<select id="vocab">
+				<option value="no">なし</option>
+				<option value="swadesh">スワデシュ・リスト</option>
+				<option value="sakamoto">坂本式架空言語基礎語彙リストver.6.2</option>
+				<option value="miniv2">mini基礎語彙 v2</option>
+				<option value="S">S基礎語彙リスト</option>
+				<option value="custom">カスタム</option>
+			</select>
+		</label>
+		<label>
+			<p>カスタム語彙リスト：</p>
+			<textarea id="custom-vocab-list"></textarea>
+		</label>
+		<label>
 			<p>文字数の範囲：</p>
 			<input id="minimum" type="number" value="2" min="1" max="10">
 			<input id="maximum" type="number" value="5" min="1" max="10">
@@ -63,21 +78,6 @@
 		<label>
 			<p>ミニマルペアの回避範囲：</p>
 			<input id="dodge-range" type="number" value="100" min="1" max="100" title="直近n単語のミニマルペアの回避">
-		</label>
-		<label>
-			<p>語彙リスト：</p>
-			<select id="vocab">
-				<option value="no">なし</option>
-				<option value="swadesh">スワデシュ・リスト</option>
-				<option value="sakamoto">坂本式架空言語基礎語彙リストver.6.2</option>
-				<option value="miniv2">mini基礎語彙 v2</option>
-				<option value="S">S基礎語彙リスト</option>
-				<option value="custom">カスタム</option>
-			</select>
-		</label>
-		<label>
-			<p>カスタム語彙リスト：</p>
-			<textarea id="custom-vocab-list"></textarea>
 		</label>
 		<div class="actions">
 			<input id="generating-btn" type="submit" value="生成">
