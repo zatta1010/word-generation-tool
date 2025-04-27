@@ -34,16 +34,24 @@ let vocabList = {
 	custom: []
 };
 
+let tagList = {
+	swadesh: [],
+	sakamoto: []
+}
+
 Object.keys(vocabList).forEach(e => {
 	if (e && e !== "custom") {
-		fetch("txt/" + e + ".txt")
-		.then(response => response.text())
-		.then(data => {
-			vocabList[e] = data.split("\n");
-			console.log(e + ".txt loadingSuccess");
+		fetch("json/" + e + ".json")
+		.then(response => response.json())
+		.then(words => {
+			words.forEach(wordObj => {
+				vocabList[e].push(wordObj.word);
+				tagList[e].push(wordObj.tags);
+			});
+			console.log(e + ".json 読み込み完了");
 		})
 		.catch(error => {
-			console.log("readError");
+			console.error("エラー発生", error);
 		});
 	}
 });
@@ -73,6 +81,58 @@ const generate = {
 			} else {
 				i--;
 			}
+		}
+	},
+	ascendingOrder: () => {
+		let len = detectLength();
+		let addLen = 0;
+
+		for (let i = 0; i < len; i++) {
+			word = makeAscendingOrder(i, addLen);
+
+			if (isValid(word) && !generatedWords.includes(word)) {
+				generatedWords.push(word);
+			} else {
+				i--;
+				addLen++;
+			}
+		}
+	},
+	ascendingOrder: () => {
+		let len = detectLength();
+		let currentLength = +minimum.value;
+		let generatedCount = 0;
+	
+		while (generatedCount < len && currentLength <= +maximum.value) {
+			let consonants = consonant.value.split(" ");
+			let vowels = vowel.value.split(" ");
+			let numberOfC = consonants.length;
+			let numberOfV = vowels.length;
+	
+			let limitForLength = Math.pow(numberOfC + numberOfV, currentLength);
+	
+			for (let i = 0; i < limitForLength && generatedCount < len; i++) {
+				let word = "";
+				let cv = 0;
+	
+				let temp_i = i;
+				for (let j = 0; j < currentLength; j++) {
+					if (cv === 0) {
+						word += consonants[temp_i % numberOfC];
+						temp_i = Math.floor(temp_i / numberOfC);
+					} else {
+						word += vowels[temp_i % numberOfV];
+						temp_i = Math.floor(temp_i / numberOfV);
+					}
+					cv = 1 - cv;
+				}
+	
+				if (isValid(word) && !generatedWords.includes(word)) {
+					generatedWords.push(word);
+					generatedCount++;
+				}
+			}
+			currentLength++;
 		}
 	},
 	avoidMinimalPair: () => {
@@ -214,6 +274,7 @@ function disableEntry() {
 }
 
 function edit() {
+	generatingBtn.disabled = copyBtnResult.disabled = btnDeleteResult.disabled = true;
 	result.hidden = true;
 
 	if (result.innerHTML.includes("<table>")) {
@@ -229,6 +290,7 @@ function edit() {
 }
 
 function applyEdit() {
+	generatingBtn.disabled = copyBtnResult.disabled = btnDeleteResult.disabled = false;
 	result.hidden = false;
 
 	if (result.innerHTML.includes("<table>")) {
