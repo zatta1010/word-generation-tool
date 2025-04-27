@@ -16,6 +16,7 @@ const notIncludeLast = $("not-include-last");
 const generatingBtn = $("generating-btn");
 const copyBtnResult = $("copy-btn-result");
 const btnDeleteResult = $("btn-delete-result");
+const btnEdit = $("btn-edit");
 const btnApplyEdit = $("btn-apply-edit");
 
 const txtEdit = $("txt-edit");
@@ -34,7 +35,7 @@ let vocabList = {
 };
 
 Object.keys(vocabList).forEach(e => {
-	if (e !== "custom") {
+	if (e && e !== "custom") {
 		fetch("txt/" + e + ".txt")
 		.then(response => response.text())
 		.then(data => {
@@ -224,6 +225,7 @@ function edit() {
 	}
 
 	btnApplyEdit.hidden = false;
+	btnEdit.hidden = true;
 }
 
 function applyEdit() {
@@ -270,6 +272,7 @@ function applyEdit() {
 	}
 
 	btnApplyEdit.hidden = true;
+	btnEdit.hidden = false;
 }
 
 function selectDictionary() {
