@@ -8,6 +8,12 @@
 	<body>
 		<h1>人工言語：単語生成ツール</h1>
 		<label>
+			<p>規則の選択：</p>
+			<select id="regulation-selection">
+				<option value="default">デフォルト</option>
+			</select>
+		</label>
+		<label>
 			<p>子音：</p>
 			<input id="consonant" type="text" value="t s k m p n l">
 		</label>
@@ -63,7 +69,7 @@
 		</label>
 		<label>
 			<p>生成する単語数：</p>
-			<input id="number-of-words" type="number" value="10">
+			<input id="number-of-words-input" type="number" value="10">
 		</label>
 		<label>
 			<p>生成方法：</p>
