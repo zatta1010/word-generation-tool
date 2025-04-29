@@ -6,6 +6,18 @@ body {
 	color: #333;
 }
 
+fieldset {
+	border: 1px solid #ccc;
+	padding: 16px;
+	margin-bottom: 16px;
+	border-radius: 8px;
+}
+
+legend {
+  font-weight: bold;
+  padding: 0 10px;
+}
+
 h1 {
 	margin-top: 40px;
 	font-size: 24px;
@@ -14,8 +26,13 @@ h1 {
 	padding-bottom: 5px;
 }
 
+label {
+	display: block;
+	margin-bottom: 16px;
+}
+
 p {
-	margin: 10px 0 5px;
+	margin: 0 0 8px;
 	font-weight: bold;
 }
 
@@ -25,7 +42,7 @@ select,
 textarea {
 	width: 100%;
 	padding: 8px;
-	margin-top: 5px;
+	margin-top: 0;
 	box-sizing: border-box;
 	border: 1px solid #ccc;
 	border-radius: 6px;
@@ -45,7 +62,7 @@ textarea {
 }
 
 .actions {
-	margin-top: 20px;
+	margin-bottom: 16px;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;
@@ -79,7 +96,42 @@ input[type="submit"]:hover {
 	border-radius: 6px;
 	font-size: 16px;
 	overflow-y: auto;
-	margin-top: 10px;
+}
+
+#detailed-setting.close {
+	font-weight: bold;
+	color: #007bff;
+}
+
+#detailed-setting {
+	font-size: 16px;
+	font-weight: bold;
+	color: #007bff;
+	cursor: pointer;
+	display: inline-block;
+	padding: 8px 12px;
+	border: 1px solid #007bff;
+	border-radius: 6px;
+	margin: 0 0 16px;
+	background-color: #e9f5ff;
+	transition: background-color 0.2s, color 0.2s;
+}
+
+#detailed-setting:hover {
+	background-color: #d0eaff;
+	color: #0056b3;
+}
+
+.range-inputs {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#number-of-words-input,
+#dodge-range,
+.range-inputs input[type="number"] {
+	width: 80px;
 }
 
 *:disabled {
