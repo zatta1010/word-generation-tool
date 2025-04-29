@@ -12,6 +12,9 @@ class DOMManager {
 
 		this.elements = {
 			// 設定関連
+			detailedToggleIcon: $("detailed-toggle-icon"),
+			detailedSetting: $("detailed-setting"),
+			detailedSettingAccordion: $("detailed-setting-accordion"),
 			regulationSelect: $("vocab"),
 			regulationSelection: $("regulation-selection"),
 			customVocabList: $("custom-vocab-list"),
@@ -140,8 +143,10 @@ class DictionaryManager {
 
 // 単語生成ルールを管理するクラス
 class RegulationManager {
-	constructor() {
+	constructor(domManager, dictionaryManager) {
 		this.wordGenerationRule = new Map();
+		this.domManager = domManager;         // DOMManagerの参照を保持
+		this.dictionaryManager = dictionaryManager; // DictionaryManagerの参照を保持
 		
 		// 単語生成規則の初期値
 		this.defaultRegulation = {
@@ -159,7 +164,7 @@ class RegulationManager {
 		};
 	}
 	
-	// 現在の選択に基づいて規則を設定
+	// カテゴリ
 	setRegulation(regulationSelection, domManager) {
 		// 現在選択されているカテゴリの規則を追加
 		if (!this.wordGenerationRule.has(regulationSelection)) {
@@ -192,6 +197,62 @@ class RegulationManager {
 	        }
 	    });
 	    this.wordGenerationRule.set(regulationSelection, newRegulation);
+	}
+
+	// 引数の単語のカテゴリの生成規則を取得する
+	getWordProductionRule(wordIndex) {
+		// 返す入力規則を変数で代入する（デフォルト規則をベースにする）
+		const defaultRule = this.wordGenerationRule.get("default") || this.defaultRegulation;
+		let resultRule = JSON.parse(JSON.stringify(defaultRule));
+
+		// 現在選択されている辞書を取得
+		const regulationSelect = this.domManager.get('regulationSelect').value;
+
+		// カスタム辞書または辞書なしの場合はデフォルト規則を返す
+		if (regulationSelect === "no" || regulationSelect === "custom") {
+			// ここでdefaultを定義
+			this.saveRegulation("default", this.domManager);
+			const defaultRule = this.wordGenerationRule.get("default");
+
+			return defaultRule;
+		}
+
+		// DictionaryManager.dictionariesで今選択されている辞書のwordsとtagsを取得する
+		const dictionary = this.dictionaryManager.dictionaries[regulationSelect];
+
+		// 辞書の中でwordIndex番目のtagsを取得
+		const tags = dictionary.tags[wordIndex];
+
+		console.log(tags, defaultRule, resultRule);
+
+		// タグがない場合はデフォルト規則を返す
+		if (!tags || tags.length === 0) {
+			return resultRule;
+		}
+
+		// 取得したtagsの中にRegulationManager.wordGenerationRuleのいずれか（defaultを除く）が含まれているか調べる
+		for (const [category, rule] of this.wordGenerationRule.entries()) {
+			// defaultカテゴリはスキップ
+			if (category === "default") continue;
+
+			// タグにカテゴリが含まれているか確認
+			if (tags.includes(category)) {
+				// 含まれている場合はRegulationManager.wordGenerationRuleの中のオブジェクトを全探索する
+				Object.keys(rule).forEach(key => {
+					// 値が空白なら返す入力規則の同じオブジェクトのキー名の値はRegulationManager.wordGenerationRule["default"]に置き換える
+					// 値が何かしら入力されている場合は同じオブジェクトのキー名の値をそれに置き換える
+					if (rule[key] !== undefined && rule[key] !== null && rule[key] !== "") {
+						resultRule[key] = rule[key];
+					}
+				});
+
+				// 最初に見つかったカテゴリのルールを適用して終了
+				return resultRule;
+			}
+		}
+
+		// 含まれていない場合はRegulationManager.wordGenerationRule["default"]をまんま返す
+		return resultRule;
 	}
 }
 
@@ -303,9 +364,9 @@ class WordGenerator {
 			for (let i = 0; i < len && attempts < maxAttempts; attempts++) {
 				const word = this.getRandomWord();
 
-				if (this.isValid(word) && 
-						!this.generatedWordList.includes(word) && 
-						this.avoidMinimalPair(word)) {
+				if (this.isValid(word) &&
+					!this.generatedWordList.includes(word) &&
+					this.avoidMinimalPair(word)) {
 					this.generatedWordList.push(word);
 					i++;
 				}
@@ -313,6 +374,7 @@ class WordGenerator {
 			
 			if (attempts >= maxAttempts) {
 				console.warn("ミニマルペアを回避できない場合があります。条件を見直してください。");
+				alert("ミニマルペアを回避できない場合があります。条件を見直してください。");
 			}
 		}
 	};
@@ -320,7 +382,7 @@ class WordGenerator {
 	// 特定の長さの単語を生成（昇順生成用）
 	generateWordOfLength(length, consonants, vowels) {
 		let word = "";
-		let isConsonant = Math.random() > 0.5; // ランダムに子音か母音から始める
+		let isConsonant = Math.random() * (consonants.length + vowels.length) > vowels.length; // ランダムに子音か母音から始める
 		
 		const firstOnlyUsableV = this.domManager.get('firstOnlyUsableV').value.split(" ").filter(Boolean);
 		const lastOnlyUsableV = this.domManager.get('lastOnlyUsableV').value.split(" ").filter(Boolean);
@@ -354,52 +416,77 @@ class WordGenerator {
 
 	// ランダムな単語を生成
 	getRandomWord() {
-		const consonantElem = this.domManager.get('consonant');
-		const vowelElem = this.domManager.get('vowel');
-		const minimumElem = this.domManager.get('minimum');
-		const maximumElem = this.domManager.get('maximum');
-		const firstOnlyUsableVElem = this.domManager.get('firstOnlyUsableV');
-		const lastOnlyUsableVElem = this.domManager.get('lastOnlyUsableV');
-		const firstOnlyUsableCElem = this.domManager.get('firstOnlyUsableC');
-		const lastOnlyUsableCElem = this.domManager.get('lastOnlyUsableC');
+		// 修正案
+		// 現在のthis.domManager.get('regulationSelection')に基づく選択は関係ない
+		// 単語を生成するときに、<table><thead><th>単語</th><th>意味</th><th>カテゴリ</th></thead><tbody>〜（単語など）〜</tbody></table>のように生成するけど、単語に対応したカテゴリの中に例えば（名詞,人間,代名詞,人称代名詞,生物）というカテゴリが合った場合に、規則に名詞あった場合は、その単語は"名詞"の規則で生成する。次の単語のカテゴリがもしも（形容詞,サイズ）で、その中に規則に形容詞というものがあったら、"形容詞"という規則でその単語を生成する
 
-		// 配列として分割し、空の要素を除去
-		const consonants = consonantElem.value.split(" ").filter(Boolean);
-		const vowels = vowelElem.value.split(" ").filter(Boolean);
+		// 現在の選択に基づいた単語の入力規則を取得
+		const regulationSelect = this.domManager.get('regulationSelect');
+		const regulationSelection = this.domManager.get('regulationSelection');
+		
+		// 辞書ベースの生成の場合、単語インデックスを取得
+		let wordIndex = -1;
+		if (regulationSelect.value !== "no" && 
+			!(regulationSelect.value === "custom" && !this.domManager.get('customVocabList').value)) {
+			// 既に生成された単語数をインデックスとして使用
+			wordIndex = this.generatedWordList.length;
+		}
+		
+		// 現在適用すべき規則を取得
+		let rule = this.regulationManager.getWordProductionRule(wordIndex);
+		
+		// 規則から値を取得
+		const consonants = (rule.consonant || "").split(" ").filter(Boolean);
+		const vowels = (rule.vowel || "").split(" ").filter(Boolean);
+		const firstOnlyUsableV = (rule.firstOnlyUsableV || "").split(" ").filter(Boolean);
+		const lastOnlyUsableV = (rule.lastOnlyUsableV || "").split(" ").filter(Boolean);
+		const firstOnlyUsableC = (rule.firstOnlyUsableC || "").split(" ").filter(Boolean);
+		const lastOnlyUsableC = (rule.lastOnlyUsableC || "").split(" ").filter(Boolean);
+		
+		// 規則に値がない場合、DOM要素の値をフォールバックとして使用
+		if (consonants.length === 0) {
+			consonants.push(...this.domManager.get('consonant').value.split(" ").filter(Boolean));
+		}
+		
+		if (vowels.length === 0) {
+			vowels.push(...this.domManager.get('vowel').value.split(" ").filter(Boolean));
+		}
 		
 		const numberOfC = consonants.length;
 		const numberOfV = vowels.length;
 		const total = numberOfC + numberOfV;
 		
+		// 子音または母音がない場合の処理
+		if (numberOfC === 0 || numberOfV === 0) {
+			console.warn("子音または母音が指定されていません");
+			return "";
+		}
+		
 		// 最初の文字タイプをランダムに決定（0: 子音、1: 母音）
 		let cv = Math.floor(Math.random() * total) < numberOfC ? 0 : 1;
 		
 		// 最小値と最大値の間でランダムな長さを決定
-		const min = parseInt(minimumElem.value, 10);
-		const max = parseInt(maximumElem.value, 10);
+		const min = parseInt(rule.minimum || this.domManager.get('minimum').value, 10);
+		const max = parseInt(rule.maximum || this.domManager.get('maximum').value, 10);
 		const len = Math.floor(Math.random() * (max - min + 1)) + min;
 
 		let word = "";
 
 		for (let i = 0; i < len; i++) {
 			if (cv === 1) { // 母音の場合
-				if (i === 0 && firstOnlyUsableVElem.value) {
-					const fouvvs = firstOnlyUsableVElem.value.split(" ").filter(Boolean);
-					word += fouvvs[Math.floor(Math.random() * fouvvs.length)];
-				} else if (i === len - 1 && lastOnlyUsableVElem.value) {
-					const louvvs = lastOnlyUsableVElem.value.split(" ").filter(Boolean);
-					word += louvvs[Math.floor(Math.random() * louvvs.length)];
+				if (i === 0 && firstOnlyUsableV.length > 0) {
+					word += firstOnlyUsableV[Math.floor(Math.random() * firstOnlyUsableV.length)];
+				} else if (i === len - 1 && lastOnlyUsableV.length > 0) {
+					word += lastOnlyUsableV[Math.floor(Math.random() * lastOnlyUsableV.length)];
 				} else {
 					word += vowels[Math.floor(Math.random() * numberOfV)];
 				}
 				cv = 0;
 			} else { // 子音の場合
-				if (i === 0 && firstOnlyUsableCElem.value) {
-					const foucvs = firstOnlyUsableCElem.value.split(" ").filter(Boolean);
-					word += foucvs[Math.floor(Math.random() * foucvs.length)];
-				} else if (i === len - 1 && lastOnlyUsableCElem.value) {
-					const loucvs = lastOnlyUsableCElem.value.split(" ").filter(Boolean);
-					word += loucvs[Math.floor(Math.random() * loucvs.length)];
+				if (i === 0 && firstOnlyUsableC.length > 0) {
+					word += firstOnlyUsableC[Math.floor(Math.random() * firstOnlyUsableC.length)];
+				} else if (i === len - 1 && lastOnlyUsableC.length > 0) {
+					word += lastOnlyUsableC[Math.floor(Math.random() * lastOnlyUsableC.length)];
 				} else {
 					word += consonants[Math.floor(Math.random() * numberOfC)];
 				}
@@ -439,20 +526,19 @@ class WordGenerator {
 	// 単語が有効かチェック（バリデーション強化）
 	isValid(word) {
 		if (!word || typeof word !== 'string') return false;
-		
-		const notInclude = this.domManager.get('notInclude').value.split(" ").filter(Boolean);
-		const notIncludeFirst = this.domManager.get('notIncludeFirst').value.split(" ").filter(Boolean);
-		const notIncludeLast = this.domManager.get('notIncludeLast').value.split(" ").filter(Boolean);
-		
-		// 含めてはいけない文字列チェック
+	
+		const wordIndex = this.generatedWordList.length; // 現在生成中の単語のインデックス
+		const rule = this.regulationManager.getWordProductionRule(wordIndex);
+	
+		const notInclude = (rule.notInclude || "").split(" ").filter(Boolean);
+		const notIncludeFirst = (rule.notIncludeFirst || "").split(" ").filter(Boolean);
+		const notIncludeLast = (rule.notIncludeLast || "").split(" ").filter(Boolean);
+	
+		// 禁止文字列チェック
 		if (notInclude.some(forbidden => word.includes(forbidden))) return false;
-		
-		// 先頭に含めてはいけない文字列チェック
 		if (notIncludeFirst.some(forbidden => word.startsWith(forbidden))) return false;
-		
-		// 末尾に含めてはいけない文字列チェック
 		if (notIncludeLast.some(forbidden => word.endsWith(forbidden))) return false;
-		
+
 		return true;
 	}
 
@@ -746,43 +832,73 @@ class UIManager {
 		const consonant = this.domManager.get('consonant');
 		const vowel = this.domManager.get('vowel');
 		const result = this.domManager.get('result');
+		const regulationSelection = this.domManager.get('regulationSelection');
 
 		// 編集モード中は検証しない
 		if (result.hidden) return false;
 
-		// 生成単語数のバリデーション
-		if (regulationSelect.value === "no") {
-			const numWords = parseInt(numberOfWordsInput.value, 10);
-			if (isNaN(numWords) || numWords <= 0) {
-				alert("生成する単語数が不正です。正の整数を入力してください。");
+		if (regulationSelection.value == "default") {
+			// 生成単語数のバリデーション
+			if (regulationSelect.value === "no") {
+				const numWords = parseInt(numberOfWordsInput.value, 10);
+				if (isNaN(numWords) || numWords <= 0) {
+					alert("生成する単語数が不正です。正の整数を入力してください。");
+					return false;
+				}
+			}
+	
+			// 文字数範囲のバリデーション
+			const min = parseInt(minimum.value, 10);
+			const max = parseInt(maximum.value, 10);
+			if (isNaN(min) || isNaN(max) || min < 1 || min > max || max > 10) {
+				alert("文字数の範囲が不正です。1 ≤ 最小値 ≤ 最大値 ≤ 10 の範囲で指定してください。");
 				return false;
 			}
-		}
-
-		// 文字数範囲のバリデーション
-		const min = parseInt(minimum.value, 10);
-		const max = parseInt(maximum.value, 10);
-		if (isNaN(min) || isNaN(max) || min < 1 || min > max || max > 10) {
-			alert("文字数の範囲が不正です。1 ≤ 最小値 ≤ 最大値 ≤ 10 の範囲で指定してください。");
-			return false;
-		}
-
-		// ミニマルペア回避範囲のバリデーション
-		if (method.value === "avoidMinimalPair") {
-			const range = parseInt(dodgeRange.value, 10);
-			if (isNaN(range) || range < 1 || range > 100) {
-				alert("ミニマルペアの回避範囲が不正です。1〜100の範囲で指定してください。");
+	
+			// ミニマルペア回避範囲のバリデーション
+			if (method.value === "avoidMinimalPair") {
+				const range = parseInt(dodgeRange.value, 10);
+				if (isNaN(range) || range < 1 || range > 100) {
+					alert("ミニマルペアの回避範囲が不正です。1〜100の範囲で指定してください。");
+					return false;
+				}
+			}
+	
+			// 子音・母音入力のバリデーション
+			if (!consonant.value.trim() || !vowel.value.trim()) {
+				alert("子音と母音は少なくとも1つずつ指定してください。");
 				return false;
 			}
+	
+			return true;
+		} else {
+			const rule = this.regulationManager.getRegulation('default');
+		
+			// 最小・最大文字数チェック
+			const min = parseInt(rule.minimum, 10);
+			const max = parseInt(rule.maximum, 10);
+			if (isNaN(min) || isNaN(max) || min < 1 || min > max || max > 10) {
+				alert("選択されたカテゴリの文字数範囲が不正です。1 ≤ 最小値 ≤ 最大値 ≤ 10 の範囲で指定してください。");
+				return false;
+			}
+		
+			// ミニマルペア回避が必要な場合
+			if (this.domManager.get('method').value === "avoidMinimalPair") {
+				const dodgeRange = parseInt(this.domManager.get('dodgeRange').value, 10);
+				if (isNaN(dodgeRange) || dodgeRange < 1 || dodgeRange > 100) {
+					alert("ミニマルペアの回避範囲が不正です。1〜100の範囲で指定してください。");
+					return false;
+				}
+			}
+		
+			// 子音・母音チェック（空文字でないか）
+			if (!rule.consonant.trim() || !rule.vowel.trim()) {
+				alert("選択されたカテゴリの子音と母音は少なくとも1つずつ指定されている必要があります。");
+				return false;
+			}
+		
+			return true;
 		}
-
-		// 子音・母音入力のバリデーション
-		if (!consonant.value.trim() || !vowel.value.trim()) {
-			alert("子音と母音は少なくとも1つずつ指定してください。");
-			return false;
-		}
-
-		return true;
 	}
 }
 
@@ -798,24 +914,27 @@ class App {
 	
 	// アプリを初期化
 	async initialize() {
-		// DOM要素を初期化
-		this.domManager.initialize();
-		
-		// ワードジェネレーターとUIマネージャーを初期化
-		this.wordGenerator = new WordGenerator(this.domManager, this.dictionaryManager, this.regulationManager);
-		this.uiManager = new UIManager(this.domManager, this.wordGenerator, this.dictionaryManager, this.regulationManager);
-		
-		// 辞書を読み込む
-		try {
-			await this.dictionaryManager.loadDictionaries();
-			// UI状態を更新
-			this.uiManager.updateUIState();
-			// イベントリスナーを設定
-			this.setupEventListeners();
-		} catch (error) {
-			console.error("アプリの初期化中にエラーが発生しました:", error);
-			alert("アプリの初期化に失敗しました。ページを再読み込みしてください。");
-		}
+	    // DOM要素を初期化
+	    this.domManager.initialize();
+	    
+	    // RegulationManagerに必要な参照を渡す
+	    this.regulationManager = new RegulationManager(this.domManager, this.dictionaryManager);
+	    
+	    // ワードジェネレーターとUIマネージャーを初期化
+	    this.wordGenerator = new WordGenerator(this.domManager, this.dictionaryManager, this.regulationManager);
+	    this.uiManager = new UIManager(this.domManager, this.wordGenerator, this.dictionaryManager, this.regulationManager);
+	    
+	    // 辞書を読み込む
+	    try {
+	        await this.dictionaryManager.loadDictionaries();
+	        // UI状態を更新
+	        this.uiManager.updateUIState();
+	        // イベントリスナーを設定
+	        this.setupEventListeners();
+	    } catch (error) {
+	        console.error("アプリの初期化中にエラーが発生しました:", error);
+	        alert("アプリの初期化に失敗しました。ページを再読み込みしてください。");
+	    }
 	}
 	
 	// イベントリスナーを設定（イベント委任パターンを使用）
@@ -839,13 +958,16 @@ class App {
 		if (e.target === this.domManager.get('regulationSelect')) {
 			const vocab = this.domManager.get('regulationSelect');
 			const regulationSelection = this.domManager.get('regulationSelection');
-			
-			// 語彙が「なし」以外の場合の処理
+		
+			// 今のカテゴリ規則を保存
+			const previousCategory = regulationSelection.value || "default";
+			this.regulationManager.saveRegulation(previousCategory, this.domManager);
+		
+			// UIリセット
+			regulationSelection.innerHTML = "<option value='default'>デフォルト</option>";
+		
+			// 辞書が swadesh や sakamoto のような場合
 			if (vocab.value !== "no") {
-				// 選択肢をリセット
-				regulationSelection.innerHTML = "<option value='default'>デフォルト</option>";
-				
-				// カテゴリ選択肢を追加
 				const categories = this.dictionaryManager.dictionaries[vocab.value].categories;
 				if (categories && categories.length) {
 					categories.forEach(category => {
@@ -855,12 +977,30 @@ class App {
 						regulationSelection.appendChild(option);
 					});
 				}
-				
-				// デフォルトの規則を設定
-				this.regulationManager.setRegulation('default', this.domManager);
+		
+				// default の規則を読み込み
+				const defaultRule = this.regulationManager.getRegulation("default");
+				Object.keys(defaultRule).forEach(key => {
+					if (this.domManager.get(key)) {
+						this.domManager.get(key).value = defaultRule[key];
+					}
+				});
+		
+				regulationSelection.value = "default";
+				regulationSelection.dataset.previousSelection = "default";
 			}
-			
-			// UI状態を更新
+			// vocab = no の場合 → デフォルトだけに戻す
+			else {
+				const rule = this.regulationManager.getRegulation("default");
+				Object.keys(rule).forEach(key => {
+					if (this.domManager.get(key)) {
+						this.domManager.get(key).value = rule[key];
+					}
+				});
+				regulationSelection.value = "default";
+				regulationSelection.dataset.previousSelection = "default";
+			}
+		
 			this.uiManager.updateUIState();
 		}
 		
@@ -869,7 +1009,7 @@ class App {
 	        // 1. まず今のカテゴリの規則を保存する
 	        const previousSelection = e.target.dataset.previousSelection || "default";
 	        this.regulationManager.saveRegulation(previousSelection, this.domManager); // ←これを追加！
-	
+
 	        // 2. 新しいカテゴリの規則を取得して反映する
 	        const regulationSelection = e.target.value;
 	        const rule = this.regulationManager.getRegulation(regulationSelection);
@@ -892,8 +1032,19 @@ class App {
 	
 	// クリックイベントハンドラー
 	handleClickEvents(e) {
+		const regulationSelection = this.domManager.get('regulationSelection').value;
+		this.regulationManager.saveRegulation(regulationSelection, this.domManager);
+
+		if (e.target === this.domManager.get('detailedSetting')) {
+			const detailedSetting = this.domManager.get('detailedSettingAccordion');
+			const detailedToggleIcon = this.domManager.get('detailedToggleIcon');
+			const toggle = this.domManager.get('detailedSetting');
+			toggle.classList.toggle("close", !detailedSetting.hidden);
+			detailedSetting.hidden = !detailedSetting.hidden;
+			detailedToggleIcon.innerText = detailedToggleIcon.innerText === "＋" ? "ー" : "＋";
+		}
 		// 生成ボタンのクリックイベント
-		if (e.target === this.domManager.get('generatingBtn')) {
+		else if (e.target === this.domManager.get('generatingBtn')) {
 			this.generateWords();
 		}
 		
@@ -928,8 +1079,7 @@ class App {
 
 	// キーダウンイベントハンドラー
 	handleKeyDownEvents(e) {
-		const regulationSelection = this.domManager.get('regulationSelection').value;
-		this.regulationManager.getRegulation(regulationSelection);
+		// saveregulation
 	}
 	
 	// 単語生成を実行
