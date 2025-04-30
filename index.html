@@ -9,53 +9,52 @@
 
 <body>
   <h1>人工言語：単語生成ツール</h1>
-  <label>
+  <label for="category-selection">
     <p>規則の選択：</p>
-    <select id="regulation-selection">
+    <select id="category-selection">
       <option value="default">デフォルト</option>
     </select>
   </label>
   <fieldset>
     <legend>基本設定</legend>
-    <label>
+    <label for="consonants">
       <p>子音：</p>
-      <input id="consonant" type="text" value="t s k m p n l">
+      <input id="consonants" type="text" value="k l m n p s t">
     </label>
-    <label>
+    <label for="vowels">
       <p>母音：</p>
-      <input id="vowel" type="text" value="a o u i e">
+      <input id="vowels" type="text" value="a e i o u">
     </label>
-    <label>
+    <label for="dictionary-selection">
       <p>語彙リスト：</p>
-      <select id="vocab">
+      <select id="dictionary-selection">
         <option value="no">なし</option>
         <option value="swadesh">スワデシュ・リスト</option>
         <option value="sakamoto">坂本式架空言語基礎語彙リストver.6.2</option>
         <option value="custom">カスタム</option>
       </select>
     </label>
-    <label>
-      <p>文字数の範囲：</p>
+    <label for="minimum">
+      <p>音素数の範囲：</p>
       <div class="range-inputs">
         <input id="minimum" type="number" value="2" min="1" max="10">
         <span>〜</span>
         <input id="maximum" type="number" value="6" min="1" max="10">
       </div>
     </label>
-    <label>
+    <label for="word-count-input">
       <p>生成する単語数：</p>
-      <input id="number-of-words-input" type="number" value="10">
+      <input id="word-count-input" type="number" value="10">
     </label>
-    <label>
+    <label for="method">
       <p>生成方法：</p>
       <select id="method">
         <option value="avoidMinimalPair" title="一文字違いを回避">ミニマルペア回避</option>
         <option value="avoidDuplicate" title="重複回避">重複回避</option>
-        <option value="ascendingOrder" title="昇順">昇順</option>
         <option value="random" title="重複を無視">完全ランダム</option>
       </select>
     </label>
-    <label>
+    <label for="dodge-range">
       <p>ミニマルペアの回避範囲：</p>
       <input id="dodge-range" type="number" value="100" min="1" max="100" title="直近n単語のミニマルペアの回避">
     </label>
@@ -64,45 +63,53 @@
     <span id="detailed-toggle-icon">＋</span>詳細設定</div>
   <fieldset id="detailed-setting-accordion" hidden>
     <legend>詳細設定</legend>
-    <label>
+		<label for="max-consecutive-consonants">
+			<p>〜重子音</p>
+			<input id="max-consecutive-consonants" type="number" value="1">
+		</label>
+		<label for="max-consecutive-vowels">
+			<p>〜重母音</p>
+			<input id="max-consecutive-vowels" type="number" value="1">
+		</label>
+    <label for="first-only-usable-consonants">
       <p>最初にのみ使える子音：</p>
-      <input id="first-only-usable-C" type="text">
+      <input id="first-only-usable-consonants" type="text">
     </label>
-    <label>
+    <label for="last-only-usable-consonants">
       <p>最後にのみ使える子音：</p>
-      <input id="last-only-usable-C" type="text">
+      <input id="last-only-usable-consonants" type="text">
     </label>
-    <label>
+    <label for="first-only-usable-vowels">
       <p>最初にのみ使える母音：</p>
-      <input id="first-only-usable-V" type="text">
+      <input id="first-only-usable-vowels" type="text">
     </label>
-    <label>
+    <label for="last-only-usable-vowels">
       <p>最後にのみ使える母音：</p>
-      <input id="last-only-usable-V" type="text">
+      <input id="last-only-usable-vowels" type="text">
     </label>
-    <label>
+    <label for="forbidden-characters">
       <p>含めない文字：</p>
-      <input id="not-include" value="ti tu" type="text">
+      <input id="forbidden-characters" type="text" value="ti tu">
     </label>
-    <label>
-      <p>先頭に含めない文字：</p>
-      <input id="not-include-first" type="text" value="a o u i e">
+    <label for="forbidden-start-characters">
+      <p>最初に含めない文字：</p>
+      <input id="forbidden-start-characters" type="text" value="a e i o u">
     </label>
-    <label>
-      <p>末尾に含めない文字：</p>
-      <input id="not-include-last" type="text" value="t s k m p n l">
+    <label for="forbidden-end-characters">
+      <p>最後に含めない文字：</p>
+      <input id="forbidden-end-characters" type="text" value="k l m n p s t">
     </label>
-    <label>
+    <label for="custom-vocab-list">
       <p>カスタム語彙リスト：</p>
       <textarea id="custom-vocab-list">
       </textarea>
     </label>
   </fieldset>
   <div class="actions">
-    <input id="generating-btn" type="submit" value="生成">
-    <input id="btn-edit" type="submit" value="編集">
+    <input id="btn-generate-words" type="submit" value="生成">
+    <input id="btn-enter-edit-mode" type="submit" value="編集">
     <input id="btn-apply-edit" type="submit" value="編集を反映" hidden>
-    <input id="copy-btn-result" type="submit" value="結果をコピー">
+    <input id="btn-copy-result" type="submit" value="結果をコピー">
     <input id="btn-delete-result" type="submit" value="結果を削除">
   </div>
   <p>結果：</p>
