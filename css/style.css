@@ -12,12 +12,10 @@ fieldset {
   margin-bottom: 16px;
   border-radius: 8px;
 }
-
 legend {
   font-weight: bold;
   padding: 0 10px;
 }
-
 h1 {
   margin-top: 40px;
   font-size: 24px;
@@ -25,12 +23,10 @@ h1 {
   border-bottom: 2px solid #ccc;
   padding-bottom: 5px;
 }
-
 label {
   display: block;
   margin-bottom: 16px;
 }
-
 p {
   margin: 0 0 8px;
   font-weight: bold;
@@ -49,16 +45,9 @@ textarea {
   background: #fff;
   font-size: 16px;
 }
-
 textarea {
   height: 100px;
   resize: vertical;
-}
-
-#controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
 }
 
 .actions {
@@ -77,7 +66,7 @@ input[type="submit"] {
   border-radius: 5px;
   cursor: pointer;
   -webkit-transition: all .2s;
-  trandition: all .2s;
+  transition: all .2s;
 }
 
 input[type="submit"]:hover {
@@ -128,9 +117,7 @@ input[type="submit"]:hover {
   gap: 8px;
 }
 
-#number-of-words-input,
-#dodge-range,
-.range-inputs input[type="number"] {
+input[type="number"] {
   width: 80px;
 }
 
