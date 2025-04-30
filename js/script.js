@@ -15,33 +15,35 @@ class DOMManager {
       detailedToggleIcon: $("detailed-toggle-icon"),
       detailedSetting: $("detailed-setting"),
       detailedSettingAccordion: $("detailed-setting-accordion"),
-      regulationSelect: $("vocab"),
-      regulationSelection: $("regulation-selection"),
+      dictionarySelection: $("dictionary-selection"),
+      categorySelection: $("category-selection"),
       customVocabList: $("custom-vocab-list"),
       dodgeRange: $("dodge-range"),
-      numberOfWordsInput: $("number-of-words-input"),
+      wordCountInput: $("word-count-input"),
 
       // 文字制限関連
-      firstOnlyUsableV: $("first-only-usable-V"),
-      lastOnlyUsableV: $("last-only-usable-V"),
-      firstOnlyUsableC: $("first-only-usable-C"),
-      lastOnlyUsableC: $("last-only-usable-C"),
-      notInclude: $("not-include"),
-      notIncludeFirst: $("not-include-first"),
-      notIncludeLast: $("not-include-last"),
+      firstOnlyUsableVowels: $("first-only-usable-vowels"),
+      lastOnlyUsableVowels: $("last-only-usable-vowels"),
+      firstOnlyUsableConsonants: $("first-only-usable-consonants"),
+      lastOnlyUsableConsonants: $("last-only-usable-consonants"),
+      forbiddenCharacters: $("forbidden-characters"),
+      forbiddenStartCharacters: $("forbidden-start-characters"),
+      forbiddenEndCharacters: $("forbidden-end-characters"),
 
       // 母音子音設定
-      consonant: $("consonant"),
-      vowel: $("vowel"),
+			maxConsecutiveConsonants: $("max-consecutive-consonants"),
+			maxConsecutiveVowels: $("max-consecutive-vowels"),
+      consonants: $("consonants"),
+      vowels: $("vowels"),
       minimum: $("minimum"),
       maximum: $("maximum"),
       method: $("method"),
 
       // ボタン類
-      generatingBtn: $("generating-btn"),
-      copyBtnResult: $("copy-btn-result"),
+      btnGenerateWords: $("btn-generate-words"),
+      btnCopyResult: $("btn-copy-result"),
       btnDeleteResult: $("btn-delete-result"),
-      btnEdit: $("btn-edit"),
+      btnEnterEditMode: $("btn-enter-edit-mode"),
       btnApplyEdit: $("btn-apply-edit"),
 
       // 表示・編集エリア
@@ -136,8 +138,8 @@ class DictionaryManager {
   }
 
   // 現在選択されている辞書を取得
-  getCurrentDictionary(regulationSelectValue) {
-    return regulationSelectValue;
+  getCurrentDictionary(dictionarySelectionValue) {
+    return dictionarySelectionValue;
   }
 }
 
@@ -150,24 +152,26 @@ class RegulationManager {
 
     // 単語生成規則の初期値
     this.defaultRegulation = {
-      consonant: "",
-      vowel: "",
-      firstOnlyUsableC: "",
-      lastOnlyUsableC: "",
-      firstOnlyUsableV: "",
-      lastOnlyUsableV: "",
-      notInclude: "",
-      notIncludeFirst: "",
-      notIncludeLast: "",
+      consonants: "",
+      vowels: "",
+			maxConsecutiveConsonants: "",
+			maxConsecutiveVowels:"",
+      firstOnlyUsableConsonants: "",
+      lastOnlyUsableConsonants: "",
+      firstOnlyUsableVowels: "",
+      lastOnlyUsableVowels: "",
+      forbiddenCharacters: "",
+      forbiddenStartCharacters: "",
+      forbiddenEndCharacters: "",
       minimum: "",
       maximum: ""
     };
   }
 
   // カテゴリ
-  setRegulation(regulationSelection, domManager) {
+  setRegulation(categorySelection, domManager) {
     // 現在選択されているカテゴリの規則を追加
-    if (!this.wordGenerationRule.has(regulationSelection)) {
+    if (!this.wordGenerationRule.has(categorySelection)) {
       // 新しい規則を作成（デフォルト値のディープコピー）
       const newRegulation = JSON.parse(JSON.stringify(this.defaultRegulation));
 
@@ -177,26 +181,26 @@ class RegulationManager {
       });
 
       // 規則を保存
-      this.wordGenerationRule.set(regulationSelection, newRegulation);
+      this.wordGenerationRule.set(categorySelection, newRegulation);
     }
 
-    return this.wordGenerationRule.get(regulationSelection);
+    return this.wordGenerationRule.get(categorySelection);
   }
 
   // 特定の規則を取得
-  getRegulation(regulationSelection) {
-    return this.wordGenerationRule.get(regulationSelection) || this.defaultRegulation;
+  getRegulation(categorySelection) {
+    return this.wordGenerationRule.get(categorySelection) || this.wordGenerationRule.get("default");
   }
 
   // 入力フォームの状態を保存する
-  saveRegulation(regulationSelection, domManager) {
+  saveRegulation(categorySelection, domManager) {
     const newRegulation = JSON.parse(JSON.stringify(this.defaultRegulation));
     Object.keys(newRegulation).forEach(key => {
       if (domManager.get(key)) {
         newRegulation[key] = domManager.get(key).value;
       }
     });
-    this.wordGenerationRule.set(regulationSelection, newRegulation);
+    this.wordGenerationRule.set(categorySelection, newRegulation);
   }
 
   // 引数の単語のカテゴリの生成規則を取得する
@@ -206,11 +210,11 @@ class RegulationManager {
     let resultRule = JSON.parse(JSON.stringify(defaultRule));
 
     // 現在選択されている辞書を取得
-    const regulationSelect = this.domManager.get('regulationSelect').value;
+    const dictionarySelection = this.domManager.get("dictionarySelection").value;
 
     // カスタム辞書または辞書なしの場合はデフォルト規則を返す
-    if (regulationSelect === "no" || regulationSelect === "custom") {
-      // ここでdefaultを定義
+    if (dictionarySelection === "no" || dictionarySelection === "custom") {
+      // ②②でdefaultを定義
       this.saveRegulation("default", this.domManager);
       const defaultRule = this.wordGenerationRule.get("default");
 
@@ -218,12 +222,10 @@ class RegulationManager {
     }
 
     // DictionaryManager.dictionariesで今選択されている辞書のwordsとtagsを取得する
-    const dictionary = this.dictionaryManager.dictionaries[regulationSelect];
+    const dictionary = this.dictionaryManager.dictionaries[dictionarySelection];
 
     // 辞書の中でwordIndex番目のtagsを取得
     const tags = dictionary.tags[wordIndex];
-
-    console.log(tags, defaultRule, resultRule);
 
     // タグがない場合はデフォルト規則を返す
     if (!tags || tags.length === 0) {
@@ -241,7 +243,7 @@ class RegulationManager {
         Object.keys(rule).forEach(key => {
           // 値が空白なら返す入力規則の同じオブジェクトのキー名の値はRegulationManager.wordGenerationRule["default"]に置き換える
           // 値が何かしら入力されている場合は同じオブジェクトのキー名の値をそれに置き換える
-          if (rule[key] !== undefined && rule[key] !== null && rule[key] !== "") {
+          if (rule[key] !== undefined && rule[key] !== null) {
             resultRule[key] = rule[key];
           }
         });
@@ -268,7 +270,7 @@ class WordGenerator {
   // 単語生成の主要メソッド
   generate() {
     this.updateDictionary();
-    const methodName = this.domManager.get('method').value;
+    const methodName = this.domManager.get("method").value;
 
     if (!this.generateMethods[methodName]) {
       console.error(`Method ${methodName} not found`);
@@ -281,7 +283,7 @@ class WordGenerator {
 
   // 辞書更新
   updateDictionary() {
-    const customVocabValue = this.domManager.get('customVocabList').value;
+    const customVocabValue = this.domManager.get("customVocabList").value;
     this.dictionaryManager.updateCustomDictionary(customVocabValue);
   }
 
@@ -327,34 +329,6 @@ class WordGenerator {
       }
     },
 
-    // 昇順生成（最適化）
-    ascendingOrder() {
-      const len = this.getNumberOfWordsToGenerate();
-      const minimum = parseInt(this.domManager.get('minimum').value, 10);
-      const maximum = parseInt(this.domManager.get('maximum').value, 10);
-      const consonants = this.domManager.get('consonant').value.split(" ").filter(Boolean);
-      const vowels = this.domManager.get('vowel').value.split(" ").filter(Boolean);
-
-      // 効率化：事前計算とセットを使用
-      const generatedSet = new Set();
-      let currentLength = minimum;
-      let generatedCount = 0;
-
-      while (generatedCount < len && currentLength <= maximum) {
-        // 効率的なパターン生成方法（反復的な試行）
-        for (let attempt = 0; attempt < 1000 && generatedCount < len; attempt++) {
-          let word = this.generateWordOfLength(currentLength, consonants, vowels);
-
-          if (this.isValid(word) && !generatedSet.has(word)) {
-            this.generatedWordList.push(word);
-            generatedSet.add(word);
-            generatedCount++;
-          }
-        }
-        currentLength++;
-      }
-    },
-
     // ミニマルペア回避
     avoidMinimalPair() {
       const len = this.getNumberOfWordsToGenerate();
@@ -379,55 +353,16 @@ class WordGenerator {
     }
   };
 
-  // 特定の長さの単語を生成（昇順生成用）
-  generateWordOfLength(length, consonants, vowels) {
-    let word = "";
-    let isConsonant = Math.random() * (consonants.length + vowels.length) > vowels.length; // ランダムに子音か母音から始める
-
-    const firstOnlyUsableV = this.domManager.get('firstOnlyUsableV').value.split(" ").filter(Boolean);
-    const lastOnlyUsableV = this.domManager.get('lastOnlyUsableV').value.split(" ").filter(Boolean);
-    const firstOnlyUsableC = this.domManager.get('firstOnlyUsableC').value.split(" ").filter(Boolean);
-    const lastOnlyUsableC = this.domManager.get('lastOnlyUsableC').value.split(" ").filter(Boolean);
-
-    for (let i = 0; i < length; i++) {
-      if (isConsonant) {
-        if (i === 0 && firstOnlyUsableC.length) {
-          word += firstOnlyUsableC[Math.floor(Math.random() * firstOnlyUsableC.length)];
-        } else if (i === length - 1 && lastOnlyUsableC.length) {
-          word += lastOnlyUsableC[Math.floor(Math.random() * lastOnlyUsableC.length)];
-        } else {
-          word += consonants[Math.floor(Math.random() * consonants.length)];
-        }
-      } else {
-        if (i === 0 && firstOnlyUsableV.length) {
-          word += firstOnlyUsableV[Math.floor(Math.random() * firstOnlyUsableV.length)];
-        } else if (i === length - 1 && lastOnlyUsableV.length) {
-          word += lastOnlyUsableV[Math.floor(Math.random() * lastOnlyUsableV.length)];
-        } else {
-          word += vowels[Math.floor(Math.random() * vowels.length)];
-        }
-      }
-
-      isConsonant = !isConsonant; // 交互に切り替え
-    }
-
-    return word;
-  }
-
   // ランダムな単語を生成
   getRandomWord() {
-    // 修正案
-    // 現在のthis.domManager.get('regulationSelection')に基づく選択は関係ない
-    // 単語を生成するときに、<table><thead><th>単語</th><th>意味</th><th>カテゴリ</th></thead><tbody>〜（単語など）〜</tbody></table>のように生成するけど、単語に対応したカテゴリの中に例えば（名詞,人間,代名詞,人称代名詞,生物）というカテゴリが合った場合に、規則に名詞あった場合は、その単語は"名詞"の規則で生成する。次の単語のカテゴリがもしも（形容詞,サイズ）で、その中に規則に形容詞というものがあったら、"形容詞"という規則でその単語を生成する
-
     // 現在の選択に基づいた単語の入力規則を取得
-    const regulationSelect = this.domManager.get('regulationSelect');
-    const regulationSelection = this.domManager.get('regulationSelection');
+    const dictionarySelection = this.domManager.get("dictionarySelection");
+    const categorySelection = this.domManager.get("categorySelection");
 
     // 辞書ベースの生成の場合、単語インデックスを取得
     let wordIndex = -1;
-    if (regulationSelect.value !== "no" &&
-      !(regulationSelect.value === "custom" && !this.domManager.get('customVocabList').value)) {
+    if (dictionarySelection.value !== "no" &&
+      !(dictionarySelection.value === "custom" && !this.domManager.get("customVocabList").value)) {
       // 既に生成された単語数をインデックスとして使用
       wordIndex = this.generatedWordList.length;
     }
@@ -436,20 +371,22 @@ class WordGenerator {
     let rule = this.regulationManager.getWordProductionRule(wordIndex);
 
     // 規則から値を取得
-    const consonants = (rule.consonant || "").split(" ").filter(Boolean);
-    const vowels = (rule.vowel || "").split(" ").filter(Boolean);
-    const firstOnlyUsableV = (rule.firstOnlyUsableV || "").split(" ").filter(Boolean);
-    const lastOnlyUsableV = (rule.lastOnlyUsableV || "").split(" ").filter(Boolean);
-    const firstOnlyUsableC = (rule.firstOnlyUsableC || "").split(" ").filter(Boolean);
-    const lastOnlyUsableC = (rule.lastOnlyUsableC || "").split(" ").filter(Boolean);
+    const consonants = (rule.consonants || "").split(" ").filter(Boolean);
+    const vowels = (rule.vowels || "").split(" ").filter(Boolean);
+    const firstOnlyUsableVowels = (rule.firstOnlyUsableVowels || "").split(" ").filter(Boolean);
+    const lastOnlyUsableVowels = (rule.lastOnlyUsableVowels || "").split(" ").filter(Boolean);
+    const firstOnlyUsableConsonants = (rule.firstOnlyUsableConsonants || "").split(" ").filter(Boolean);
+    const lastOnlyUsableConsonants = (rule.lastOnlyUsableConsonants || "").split(" ").filter(Boolean);
+		const maxConsecutiveConsonants = (rule.maxConsecutiveConsonants || "").split(" ").filter(Boolean);
+		const maxConsecutiveVowels = (rule.maxConsecutiveVowels || "").split(" ").filter(Boolean);
 
     // 規則に値がない場合、DOM要素の値をフォールバックとして使用
     if (consonants.length === 0) {
-      consonants.push(...this.domManager.get('consonant').value.split(" ").filter(Boolean));
+      consonants.push(...this.domManager.get("consonants").value.split(" ").filter(Boolean));
     }
 
     if (vowels.length === 0) {
-      vowels.push(...this.domManager.get('vowel').value.split(" ").filter(Boolean));
+      vowels.push(...this.domManager.get("vowels").value.split(" ").filter(Boolean));
     }
 
     const numberOfC = consonants.length;
@@ -459,6 +396,7 @@ class WordGenerator {
     // 子音または母音がない場合の処理
     if (numberOfC === 0 || numberOfV === 0) {
       console.warn("子音または母音が指定されていません");
+			alert("子音または母音が指定されていません");
       return "";
     }
 
@@ -466,30 +404,36 @@ class WordGenerator {
     let cv = Math.floor(Math.random() * total) < numberOfC ? 0 : 1;
 
     // 最小値と最大値の間でランダムな長さを決定
-    const min = parseInt(rule.minimum || this.domManager.get('minimum').value, 10);
-    const max = parseInt(rule.maximum || this.domManager.get('maximum').value, 10);
+    const min = parseInt(rule.minimum || this.domManager.get("minimum").value, 10);
+    const max = parseInt(rule.maximum || this.domManager.get("maximum").value, 10);
     const len = Math.floor(Math.random() * (max - min + 1)) + min;
 
     let word = "";
 
     for (let i = 0; i < len; i++) {
       if (cv === 1) { // 母音の場合
-        if (i === 0 && firstOnlyUsableV.length > 0) {
-          word += firstOnlyUsableV[Math.floor(Math.random() * firstOnlyUsableV.length)];
-        } else if (i === len - 1 && lastOnlyUsableV.length > 0) {
-          word += lastOnlyUsableV[Math.floor(Math.random() * lastOnlyUsableV.length)];
-        } else {
-          word += vowels[Math.floor(Math.random() * numberOfV)];
-        }
+				if (i === 0 && firstOnlyUsableVowels.length > 0) {
+					word += firstOnlyUsableVowels[Math.floor(Math.random() * firstOnlyUsableVowels.length)];
+				} else if (i === len - 1 && lastOnlyUsableVowels.length > 0) {
+					word += lastOnlyUsableVowels[Math.floor(Math.random() * lastOnlyUsableVowels.length)];
+				} else {
+					const stackTimes = Math.floor(Math.random() * rule.maxConsecutiveVowels) + 1;
+					for (let j = 0; j < stackTimes; j++) {
+	          word += vowels[Math.floor(Math.random() * numberOfV)];
+					}
+				}
         cv = 0;
       } else { // 子音の場合
-        if (i === 0 && firstOnlyUsableC.length > 0) {
-          word += firstOnlyUsableC[Math.floor(Math.random() * firstOnlyUsableC.length)];
-        } else if (i === len - 1 && lastOnlyUsableC.length > 0) {
-          word += lastOnlyUsableC[Math.floor(Math.random() * lastOnlyUsableC.length)];
-        } else {
-          word += consonants[Math.floor(Math.random() * numberOfC)];
-        }
+				if (i === 0 && firstOnlyUsableConsonants.length > 0) {
+					word += firstOnlyUsableConsonants[Math.floor(Math.random() * firstOnlyUsableConsonants.length)];
+				} else if (i === len - 1 && lastOnlyUsableConsonants.length > 0) {
+					word += lastOnlyUsableConsonants[Math.floor(Math.random() * lastOnlyUsableConsonants.length)];
+				} else {
+					const stackTimes = Math.floor(Math.random() * rule.maxConsecutiveConsonants) + 1;
+					for (let j = 0; j < stackTimes; j++) {
+	          word += consonants[Math.floor(Math.random() * numberOfC)];
+					}
+				}
         cv = 1;
       }
     }
@@ -499,7 +443,7 @@ class WordGenerator {
 
   // ミニマルペアを回避するかチェック
   avoidMinimalPair(word) {
-    const dodgeRange = parseInt(this.domManager.get('dodgeRange').value, 10);
+    const dodgeRange = parseInt(this.domManager.get("dodgeRange").value, 10);
     const recentWords = this.generatedWordList.slice(-dodgeRange);
 
     // 任意の単語とミニマルペアであるかチェック
@@ -525,42 +469,42 @@ class WordGenerator {
 
   // 単語が有効かチェック（バリデーション強化）
   isValid(word) {
-    if (!word || typeof word !== 'string') return false;
+    if (!word || typeof word !== "string") return false;
 
     const wordIndex = this.generatedWordList.length; // 現在生成中の単語のインデックス
     const rule = this.regulationManager.getWordProductionRule(wordIndex);
 
-    const notInclude = (rule.notInclude || "").split(" ").filter(Boolean);
-    const notIncludeFirst = (rule.notIncludeFirst || "").split(" ").filter(Boolean);
-    const notIncludeLast = (rule.notIncludeLast || "").split(" ").filter(Boolean);
+    const forbiddenCharacters = (rule.forbiddenCharacters || "").split(" ").filter(Boolean);
+    const forbiddenStartCharacters = (rule.forbiddenStartCharacters || "").split(" ").filter(Boolean);
+    const forbiddenEndCharacters = (rule.forbiddenEndCharacters || "").split(" ").filter(Boolean);
 
     // 禁止文字列チェック
-    if (notInclude.some(forbidden => word.includes(forbidden))) return false;
-    if (notIncludeFirst.some(forbidden => word.startsWith(forbidden))) return false;
-    if (notIncludeLast.some(forbidden => word.endsWith(forbidden))) return false;
+    if (forbiddenCharacters.some(forbidden => word.includes(forbidden))) return false;
+    if (forbiddenStartCharacters.some(forbidden => word.startsWith(forbidden))) return false;
+    if (forbiddenEndCharacters.some(forbidden => word.endsWith(forbidden))) return false;
 
     return true;
   }
 
   // 生成する単語数を取得
   getNumberOfWordsToGenerate() {
-    const regulationSelect = this.domManager.get('regulationSelect');
-    const customVocabList = this.domManager.get('customVocabList');
-    const numberOfWordsInput = this.domManager.get('numberOfWordsInput');
-    const result = this.domManager.get('result');
+    const dictionarySelection = this.domManager.get("dictionarySelection");
+    const customVocabList = this.domManager.get("customVocabList");
+    const wordCountInput = this.domManager.get("wordCountInput");
+    const result = this.domManager.get("result");
 
     // 独自生成の場合
-    if (regulationSelect.value === "no" ||
-      (regulationSelect.value === "custom" && !customVocabList.value)) {
-      return parseInt(numberOfWordsInput.value, 10);
+    if (dictionarySelection.value === "no" ||
+      (dictionarySelection.value === "custom" && !customVocabList.value)) {
+      return parseInt(wordCountInput.value, 10);
     }
     // 辞書ベースの場合
     else {
       if (!result.innerHTML.includes("<table>")) {
-        result.innerText = "";
+        result.textContent = "";
         this.clearResults();
       }
-      return this.dictionaryManager.dictionaries[regulationSelect.value].words.length;
+      return this.dictionaryManager.dictionaries[dictionarySelection.value].words.length;
     }
   }
 
@@ -581,34 +525,34 @@ class UIManager {
 
   // UI要素の有効/無効を切り替え
   updateUIState() {
-    const dodgeRange = this.domManager.get('dodgeRange');
-    const method = this.domManager.get('method');
-    const customVocabList = this.domManager.get('customVocabList');
-    const regulationSelect = this.domManager.get('regulationSelect');
-    const numberOfWordsInput = this.domManager.get('numberOfWordsInput');
-    const regulationSelection = this.domManager.get('regulationSelection');
+    const dodgeRange = this.domManager.get("dodgeRange");
+    const method = this.domManager.get("method");
+    const customVocabList = this.domManager.get("customVocabList");
+    const dictionarySelection = this.domManager.get("dictionarySelection");
+    const wordCountInput = this.domManager.get("wordCountInput");
+    const categorySelection = this.domManager.get("categorySelection");
 
     // 条件に基づいて要素の有効/無効を切り替え
     dodgeRange.disabled = method.value !== "avoidMinimalPair";
-    customVocabList.disabled = regulationSelect.value !== "custom";
-    numberOfWordsInput.disabled = regulationSelect.value !== "no";
-    regulationSelection.disabled = regulationSelect.value === "no";
+    customVocabList.disabled = dictionarySelection.value !== "custom";
+    wordCountInput.disabled = dictionarySelection.value !== "no";
+    categorySelection.disabled = dictionarySelection.value === "no";
   }
 
   // 結果を表示
   displayResults() {
-    const regulationSelect = this.domManager.get('regulationSelect');
-    const customVocabList = this.domManager.get('customVocabList');
-    const txtEdit = this.domManager.get('txtEdit');
-    const tableEdit = this.domManager.get('tableEdit');
-    const result = this.domManager.get('result');
+    const dictionarySelection = this.domManager.get("dictionarySelection");
+    const customVocabList = this.domManager.get("customVocabList");
+    const txtEdit = this.domManager.get("txtEdit");
+    const tableEdit = this.domManager.get("tableEdit");
+    const result = this.domManager.get("result");
 
     // 編集フィールドと結果をクリア
-    txtEdit.value = tableEdit.innerText = result.innerText = "";
+    txtEdit.value = tableEdit.textContent = result.textContent = "";
 
     // 表示形式を決定
-    if (regulationSelect.value === "no" ||
-      (regulationSelect.value === "custom" && !customVocabList.value)) {
+    if (dictionarySelection.value === "no" ||
+      (dictionarySelection.value === "custom" && !customVocabList.value)) {
       this.displayTextResults();
     } else {
       this.displayTableResults();
@@ -617,13 +561,14 @@ class UIManager {
 
   // テキスト形式で結果を表示
   displayTextResults() {
-    const txtEdit = this.domManager.get('txtEdit');
-    const result = this.domManager.get('result');
+    const txtEdit = this.domManager.get("txtEdit");
+    const result = this.domManager.get("result");
     const wordList = this.wordGenerator.generatedWordList;
 
     // 各単語を表示
     wordList.forEach(word => {
       if (word) {
+				// 改行で出力するため、innerText
         result.innerText += word + "\n";
         txtEdit.value += word + "\n";
       }
@@ -632,10 +577,10 @@ class UIManager {
 
   // テーブル形式で結果を表示
   displayTableResults() {
-    const txtEdit = this.domManager.get('txtEdit');
-    const tableEdit = this.domManager.get('tableEdit');
-    const result = this.domManager.get('result');
-    const regulationSelect = this.domManager.get('regulationSelect');
+    const txtEdit = this.domManager.get("txtEdit");
+    const tableEdit = this.domManager.get("tableEdit");
+    const result = this.domManager.get("result");
+    const dictionarySelection = this.domManager.get("dictionarySelection");
     const wordList = this.wordGenerator.generatedWordList;
 
     // テーブルのヘッダー部分
@@ -645,13 +590,13 @@ class UIManager {
     // 各単語の情報を追加
     wordList.forEach((word, i) => {
       if (word) {
-        const dictType = regulationSelect.value;
+        const dictType = dictionarySelection.value;
         const dictionary = this.dictionaryManager.dictionaries[dictType];
         const categoryText = dictType === "custom" ? "なし" : (dictionary.tags[i] || "なし");
 
         // 編集用テーブル行
         editTableHTML += `<tr>
-<td><input class='word-edit' type='text' value='${this.escapeHtml(word)}'></td>
+<td><input class="word-edit" type="text" value="${this.escapeHtml(word)}"></td>
 <td>${this.escapeHtml(dictionary.words[i] || "")}</td>
 <td>${this.escapeHtml(categoryText)}</td>
 </tr>`;
@@ -687,22 +632,22 @@ class UIManager {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(/"/g, "&#039;");
   }
 
   // 編集モードに切り替え
   switchToEditMode() {
-    const generatingBtn = this.domManager.get('generatingBtn');
-    const copyBtnResult = this.domManager.get('copyBtnResult');
-    const btnDeleteResult = this.domManager.get('btnDeleteResult');
-    const result = this.domManager.get('result');
-    const tableEdit = this.domManager.get('tableEdit');
-    const txtEdit = this.domManager.get('txtEdit');
-    const btnApplyEdit = this.domManager.get('btnApplyEdit');
-    const btnEdit = this.domManager.get('btnEdit');
+    const btnGenerateWords = this.domManager.get("btnGenerateWords");
+    const btnCopyResult = this.domManager.get("btnCopyResult");
+    const btnDeleteResult = this.domManager.get("btnDeleteResult");
+    const result = this.domManager.get("result");
+    const tableEdit = this.domManager.get("tableEdit");
+    const txtEdit = this.domManager.get("txtEdit");
+    const btnApplyEdit = this.domManager.get("btnApplyEdit");
+    const btnEnterEditMode = this.domManager.get("btnEnterEditMode");
 
     // ボタンの状態変更
-    generatingBtn.disabled = copyBtnResult.disabled = btnDeleteResult.disabled = true;
+    btnGenerateWords.disabled = btnCopyResult.disabled = btnDeleteResult.disabled = true;
     result.hidden = true;
 
     // 表示形式に合わせて編集エリアを表示
@@ -716,22 +661,22 @@ class UIManager {
 
     // 編集用ボタンの表示切替
     btnApplyEdit.hidden = false;
-    btnEdit.hidden = true;
+    btnEnterEditMode.hidden = true;
   }
 
   // 編集を適用
   applyEdit() {
-    const generatingBtn = this.domManager.get('generatingBtn');
-    const copyBtnResult = this.domManager.get('copyBtnResult');
-    const btnDeleteResult = this.domManager.get('btnDeleteResult');
-    const result = this.domManager.get('result');
-    const tableEdit = this.domManager.get('tableEdit');
-    const txtEdit = this.domManager.get('txtEdit');
-    const btnApplyEdit = this.domManager.get('btnApplyEdit');
-    const btnEdit = this.domManager.get('btnEdit');
+    const btnGenerateWords = this.domManager.get("btnGenerateWords");
+    const btnCopyResult = this.domManager.get("btnCopyResult");
+    const btnDeleteResult = this.domManager.get("btnDeleteResult");
+    const result = this.domManager.get("result");
+    const tableEdit = this.domManager.get("tableEdit");
+    const txtEdit = this.domManager.get("txtEdit");
+    const btnApplyEdit = this.domManager.get("btnApplyEdit");
+    const btnEnterEditMode = this.domManager.get("btnEnterEditMode");
 
     // ボタンの状態変更
-    generatingBtn.disabled = copyBtnResult.disabled = btnDeleteResult.disabled = false;
+    btnGenerateWords.disabled = btnCopyResult.disabled = btnDeleteResult.disabled = false;
     result.hidden = false;
 
     // 表示形式に合わせて編集適用
@@ -743,25 +688,25 @@ class UIManager {
 
     // 編集用ボタンの表示切替
     btnApplyEdit.hidden = true;
-    btnEdit.hidden = false;
+    btnEnterEditMode.hidden = false;
   }
 
   // テーブル編集を適用
   applyTableEdit() {
-    const tableEdit = this.domManager.get('tableEdit');
-    const txtEdit = this.domManager.get('txtEdit');
-    const result = this.domManager.get('result');
-    const regulationSelect = this.domManager.get('regulationSelect');
+    const tableEdit = this.domManager.get("tableEdit");
+    const txtEdit = this.domManager.get("txtEdit");
+    const result = this.domManager.get("result");
+    const dictionarySelection = this.domManager.get("dictionarySelection");
 
     tableEdit.hidden = true;
 
     // 編集された単語を取得
     const wordEdits = document.querySelectorAll(".word-edit");
-    const dictType = regulationSelect.value;
+    const dictType = dictionarySelection.value;
     const dictionary = this.dictionaryManager.dictionaries[dictType];
 
     // フィールドをクリア
-    tableEdit.innerText = result.innerText = "";
+    tableEdit.textContent = result.textContent = "";
     txtEdit.value = "";
 
     // 更新された単語を配列に格納
@@ -777,7 +722,7 @@ class UIManager {
 
         // 編集用テーブル行
         editTableHTML += `<tr>
-<td><input class='word-edit' type='text' value='${this.escapeHtml(word)}'></td>
+<td><input class="word-edit" type="text" value="${this.escapeHtml(word)}"></td>
 <td>${this.escapeHtml(dictionary.words[i] || "")}</td>
 <td>${this.escapeHtml(categoryText)}</td>
 </tr>`;
@@ -807,10 +752,11 @@ class UIManager {
 
   // テキスト編集を適用
   applyTextEdit() {
-    const txtEdit = this.domManager.get('txtEdit');
-    const result = this.domManager.get('result');
+    const txtEdit = this.domManager.get("txtEdit");
+    const result = this.domManager.get("result");
 
     txtEdit.hidden = true;
+		// 改行が含まれているため
     result.innerText = txtEdit.value;
 
     if (txtEdit.value) {
@@ -823,24 +769,24 @@ class UIManager {
 
   // 入力バリデーション
   validateInput() {
-    const numberOfWordsInput = this.domManager.get('numberOfWordsInput');
-    const regulationSelect = this.domManager.get('regulationSelect');
-    const minimum = this.domManager.get('minimum');
-    const maximum = this.domManager.get('maximum');
-    const method = this.domManager.get('method');
-    const dodgeRange = this.domManager.get('dodgeRange');
-    const consonant = this.domManager.get('consonant');
-    const vowel = this.domManager.get('vowel');
-    const result = this.domManager.get('result');
-    const regulationSelection = this.domManager.get('regulationSelection');
+    const wordCountInput = this.domManager.get("wordCountInput");
+    const dictionarySelection = this.domManager.get("dictionarySelection");
+    const minimum = this.domManager.get("minimum");
+    const maximum = this.domManager.get("maximum");
+    const method = this.domManager.get("method");
+    const dodgeRange = this.domManager.get("dodgeRange");
+    const consonants = this.domManager.get("consonants");
+    const vowels = this.domManager.get("vowels");
+    const result = this.domManager.get("result");
+    const categorySelection = this.domManager.get("categorySelection");
 
     // 編集モード中は検証しない
     if (result.hidden) return false;
 
-    if (regulationSelection.value == "default") {
+    if (categorySelection.value === "default") {
       // 生成単語数のバリデーション
-      if (regulationSelect.value === "no") {
-        const numWords = parseInt(numberOfWordsInput.value, 10);
+      if (dictionarySelection.value === "no") {
+        const numWords = parseInt(wordCountInput.value, 10);
         if (isNaN(numWords) || numWords <= 0) {
           alert("生成する単語数が不正です。正の整数を入力してください。");
           return false;
@@ -865,14 +811,14 @@ class UIManager {
       }
 
       // 子音・母音入力のバリデーション
-      if (!consonant.value.trim() || !vowel.value.trim()) {
+      if (!consonants.value.trim() || !vowels.value.trim()) {
         alert("子音と母音は少なくとも1つずつ指定してください。");
         return false;
       }
 
       return true;
     } else {
-      const rule = this.regulationManager.getRegulation('default');
+      const rule = this.regulationManager.getRegulation("default");
 
       // 最小・最大文字数チェック
       const min = parseInt(rule.minimum, 10);
@@ -883,8 +829,8 @@ class UIManager {
       }
 
       // ミニマルペア回避が必要な場合
-      if (this.domManager.get('method').value === "avoidMinimalPair") {
-        const dodgeRange = parseInt(this.domManager.get('dodgeRange').value, 10);
+      if (this.domManager.get("method").value === "avoidMinimalPair") {
+        const dodgeRange = parseInt(this.domManager.get("dodgeRange").value, 10);
         if (isNaN(dodgeRange) || dodgeRange < 1 || dodgeRange > 100) {
           alert("ミニマルペアの回避範囲が不正です。1〜100の範囲で指定してください。");
           return false;
@@ -892,7 +838,7 @@ class UIManager {
       }
 
       // 子音・母音チェック（空文字でないか）
-      if (!rule.consonant.trim() || !rule.vowel.trim()) {
+      if (!rule.consonants.trim() || !rule.vowels.trim()) {
         alert("選択されたカテゴリの子音と母音は少なくとも1つずつ指定されている必要があります。");
         return false;
       }
@@ -907,7 +853,7 @@ class App {
   constructor() {
     this.domManager = new DOMManager();
     this.dictionaryManager = new DictionaryManager();
-    this.regulationManager = new RegulationManager();
+		this.regulationManager = new RegulationManager(this.domManager, this.dictionaryManager);
     this.wordGenerator = null;
     this.uiManager = null;
   }
@@ -916,9 +862,6 @@ class App {
   async initialize() {
     // DOM要素を初期化
     this.domManager.initialize();
-
-    // RegulationManagerに必要な参照を渡す
-    this.regulationManager = new RegulationManager(this.domManager, this.dictionaryManager);
 
     // ワードジェネレーターとUIマネージャーを初期化
     this.wordGenerator = new WordGenerator(this.domManager, this.dictionaryManager, this.regulationManager);
@@ -940,41 +883,41 @@ class App {
   // イベントリスナーを設定（イベント委任パターンを使用）
   setupEventListeners() {
     // 変更イベントの一元管理
-    document.addEventListener('change', this.handleChangeEvents.bind(this));
+    document.addEventListener("change", this.handleChangeEvents.bind(this));
 
     // クリックイベントの一元管理
-    document.addEventListener('click', this.handleClickEvents.bind(this));
+    document.addEventListener("click", this.handleClickEvents.bind(this));
 
     // ダブルクリックイベントの管理
-    document.addEventListener('dblclick', this.handleDblClickEvents.bind(this));
+    document.addEventListener("dblclick", this.handleDblClickEvents.bind(this));
 
     // キーダウンイベントの管理
-    document.addEventListener('keydown', this.handleKeyDownEvents.bind(this));
+    document.addEventListener("keydown", this.handleKeyDownEvents.bind(this));
   }
 
   // 変更イベントハンドラー
   handleChangeEvents(e) {
     // 辞書選択の変更イベント
-    if (e.target === this.domManager.get('regulationSelect')) {
-      const vocab = this.domManager.get('regulationSelect');
-      const regulationSelection = this.domManager.get('regulationSelection');
+    if (e.target === this.domManager.get("dictionarySelection")) {
+      const vocab = this.domManager.get("dictionarySelection");
+      const categorySelection = this.domManager.get("categorySelection");
 
       // 今のカテゴリ規則を保存
-      const previousCategory = regulationSelection.value || "default";
+      const previousCategory = categorySelection.value || "default";
       this.regulationManager.saveRegulation(previousCategory, this.domManager);
 
       // UIリセット
-      regulationSelection.innerHTML = "<option value='default'>デフォルト</option>";
+      categorySelection.innerHTML = '<option value="default">デフォルト</option>';
 
       // 辞書が swadesh や sakamoto のような場合
       if (vocab.value !== "no") {
         const categories = this.dictionaryManager.dictionaries[vocab.value].categories;
         if (categories && categories.length) {
           categories.forEach(category => {
-            const option = document.createElement('option');
+            const option = document.createElement("option");
             option.textContent = category;
             option.value = category;
-            regulationSelection.appendChild(option);
+            categorySelection.appendChild(option);
           });
         }
 
@@ -986,8 +929,8 @@ class App {
           }
         });
 
-        regulationSelection.value = "default";
-        regulationSelection.dataset.previousSelection = "default";
+        categorySelection.value = "default";
+        categorySelection.dataset.previousSelection = "default";
       }
       // vocab = no の場合 → デフォルトだけに戻す
       else {
@@ -997,22 +940,22 @@ class App {
             this.domManager.get(key).value = rule[key];
           }
         });
-        regulationSelection.value = "default";
-        regulationSelection.dataset.previousSelection = "default";
+        categorySelection.value = "default";
+        categorySelection.dataset.previousSelection = "default";
       }
 
       this.uiManager.updateUIState();
     }
 
-    // 変更対象が regulationSelection の場合
-    if (e.target === this.domManager.get('regulationSelection')) {
+    // 変更対象が categorySelection の場合
+    if (e.target === this.domManager.get("categorySelection")) {
       // 1. まず今のカテゴリの規則を保存する
       const previousSelection = e.target.dataset.previousSelection || "default";
-      this.regulationManager.saveRegulation(previousSelection, this.domManager); // ←これを追加！
+      this.regulationManager.saveRegulation(previousSelection, this.domManager); // ←②れを追加！
 
       // 2. 新しいカテゴリの規則を取得して反映する
-      const regulationSelection = e.target.value;
-      const rule = this.regulationManager.getRegulation(regulationSelection);
+      const categorySelection = e.target.value;
+      const rule = this.regulationManager.getRegulation(categorySelection);
 
       Object.keys(rule).forEach(key => {
         if (this.domManager.get(key)) {
@@ -1021,50 +964,50 @@ class App {
       });
 
       // 3. 現在の選択肢を記憶しておく
-      e.target.dataset.previousSelection = regulationSelection;
+      e.target.dataset.previousSelection = categorySelection;
     }
 
     // 生成方法の変更イベント
-    if (e.target === this.domManager.get('method')) {
+    if (e.target === this.domManager.get("method")) {
       this.uiManager.updateUIState();
     }
   }
 
   // クリックイベントハンドラー
   handleClickEvents(e) {
-    const regulationSelection = this.domManager.get('regulationSelection').value;
-    this.regulationManager.saveRegulation(regulationSelection, this.domManager);
+    const categorySelection = this.domManager.get("categorySelection").value;
+    this.regulationManager.saveRegulation(categorySelection, this.domManager);
 
-    if (e.target === this.domManager.get('detailedSetting')) {
-      const detailedSetting = this.domManager.get('detailedSettingAccordion');
-      const detailedToggleIcon = this.domManager.get('detailedToggleIcon');
-      const toggle = this.domManager.get('detailedSetting');
+    if (e.target === this.domManager.get("detailedSetting")) {
+      const detailedSetting = this.domManager.get("detailedSettingAccordion");
+      const detailedToggleIcon = this.domManager.get("detailedToggleIcon");
+      const toggle = this.domManager.get("detailedSetting");
       toggle.classList.toggle("close", !detailedSetting.hidden);
       detailedSetting.hidden = !detailedSetting.hidden;
-      detailedToggleIcon.innerText = detailedToggleIcon.innerText === "＋" ? "ー" : "＋";
+      detailedToggleIcon.textContent = detailedToggleIcon.textContent === "＋" ? "ー" : "＋";
     }
     // 生成ボタンのクリックイベント
-    else if (e.target === this.domManager.get('generatingBtn')) {
+    else if (e.target === this.domManager.get("btnGenerateWords")) {
       this.generateWords();
     }
 
     // 編集ボタンのクリックイベント
-    else if (e.target === this.domManager.get('btnEdit')) {
+    else if (e.target === this.domManager.get("btnEnterEditMode")) {
       this.uiManager.switchToEditMode();
     }
 
     // 編集適用ボタンのクリックイベント
-    else if (e.target === this.domManager.get('btnApplyEdit')) {
+    else if (e.target === this.domManager.get("btnApplyEdit")) {
       this.uiManager.applyEdit();
     }
 
     // 結果削除ボタンのクリックイベント
-    else if (e.target === this.domManager.get('btnDeleteResult')) {
+    else if (e.target === this.domManager.get("btnDeleteResult")) {
       this.confirmAndDeleteResults();
     }
 
     // 結果コピーボタンのクリックイベント
-    else if (e.target === this.domManager.get('copyBtnResult')) {
+    else if (e.target === this.domManager.get("btnCopyResult")) {
       this.copyResultsToClipboard();
     }
   }
@@ -1072,14 +1015,30 @@ class App {
   // ダブルクリックイベントハンドラー
   handleDblClickEvents(e) {
     // 結果エリアのダブルクリックで編集モードに
-    if (e.target === this.domManager.get('result')) {
+    if (e.target === this.domManager.get("result")) {
       this.uiManager.switchToEditMode();
     }
   }
 
   // キーダウンイベントハンドラー
   handleKeyDownEvents(e) {
-    // saveregulation
+		// ショートカットなど
+		// ctrl+spaceで編集
+		if (e.ctrlKey && e.key === "/") {
+			this.uiManager.switchToEditMode();
+		}
+		// ctrl+Enterで編集を反映または単語生成
+		if (e.ctrlKey && e.key === "Enter") {
+			if (this.domManager.get("result").hidden) {
+				this.uiManager.applyEdit();
+			} else {
+				this.generateWords();
+			}
+		}
+		// ctrl+backspaceで結果削除
+		if (e.ctrlKey && e.key === "Backspace") {
+			this.confirmAndDeleteResults();
+		}
   }
 
   // 単語生成を実行
@@ -1101,14 +1060,14 @@ class App {
   confirmAndDeleteResults() {
     if (confirm("本当に削除しますか？")) {
       this.wordGenerator.clearResults();
-      this.domManager.get('txtEdit').value = "";
-      this.domManager.get('result').innerText = "";
+      this.domManager.get("txtEdit").value = "";
+      this.domManager.get("result").textContent = "";
     }
   }
 
   // 結果をクリップボードにコピー
   copyResultsToClipboard() {
-    const resultText = this.domManager.get('result').innerText;
+    const resultText = this.domManager.get("result").textContent;
 
     if (!resultText.trim()) {
       alert("コピーする結果がありません。");
@@ -1138,7 +1097,7 @@ class App {
     textArea.select();
 
     try {
-      const successful = document.execCommand('copy');
+      const successful = document.execCommand("copy");
       if (successful) {
         alert("結果をクリップボードにコピーしました");
       } else {
@@ -1154,7 +1113,7 @@ class App {
 }
 
 // アプリケーションのインスタンス化と初期化
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   const app = new App();
   app.initialize();
 });
