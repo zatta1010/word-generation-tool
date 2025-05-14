@@ -3,18 +3,35 @@
 
 <head>
   <meta charset="utf-8">
-  <title>人工言語：単語生成ツール</title>
+  <title>人工言語 単語生成ツール</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-  <h1>人工言語：単語生成ツール</h1>
-  <label for="category-selection">
-    <p>規則の選択：</p>
-    <select id="category-selection">
-      <option value="default">デフォルト</option>
-    </select>
-  </label>
+  <h1>人工言語 単語生成ツール</h1>
+	<fieldset>
+	  <legend>規則の管理</legend>
+	  <div class="">
+	    <label for="import-regulation">
+				<p>規則をインポート：</p>
+			  <label for="import-regulation" class="file-label">
+		      インポート
+		    </label>
+	      <input id="import-regulation" type="file" accept=".json" style="display: none;">
+				<span id="file-name-display" class="file-name">未選択</span>
+	    </label>
+			<label for="btn-export-regulation">
+				<p>規則をエクスポート：</p>
+	    	<input id="btn-export-regulation" type="submit" value="エクスポート">
+			</label>
+	  </div>
+		<label for="category-selection">
+	    <p>規則の選択：</p>
+	    <select id="category-selection" disabled>
+	      <option value="default">デフォルト</option>
+	    </select>
+	  </label>
+	</fieldset>
   <fieldset>
     <legend>基本設定</legend>
     <label for="consonants">
@@ -60,7 +77,8 @@
     </label>
   </fieldset>
   <div id="detailed-setting" class="close">
-    <span id="detailed-toggle-icon">＋</span>詳細設定</div>
+    <span id="detailed-toggle-icon">＋</span>詳細設定
+	</div>
   <fieldset id="detailed-setting-accordion" hidden>
     <legend>詳細設定</legend>
 		<label for="max-consecutive-consonants">
