@@ -49,7 +49,11 @@ class DOMManager {
       // 表示・編集エリア
       txtEdit: $("txt-edit"),
       tableEdit: $("table-edit"),
-      result: $("result")
+      result: $("result"),
+
+			// 生成規則のjsonファイルを読み込む
+			importRegulation: $("import-regulation"),
+			btnExportRegulation: $("btn-export-regulation")
     };
 
     // デフォルト値の設定
@@ -256,6 +260,57 @@ class RegulationManager {
     // 含まれていない場合はRegulationManager.wordGenerationRule["default"]をまんま返す
     return resultRule;
   }
+	// JSON形式で現在の規則を保存する
+	exportRegulationToJSON() {
+	  // 現在の規則をすべて取得
+	  const allRegulations = {};
+	  
+	  // WordGenerationRuleマップからオブジェクトに変換
+	  for (const [category, rule] of this.wordGenerationRule.entries()) {
+	    allRegulations[category] = rule;
+	  }
+	  
+	  // JSONに変換して返す
+	  return JSON.stringify(allRegulations, null, 2);
+	}
+	
+	// JSON形式から規則を読み込む
+	importRegulationFromJSON(jsonData) {
+	  try {
+	    // JSONデータをパース
+	    const importedRegulations = JSON.parse(jsonData);
+	    
+	    // 既存の規則をクリア
+	    this.wordGenerationRule.clear();
+	    
+	    // 読み込んだ規則を設定
+	    for (const category in importedRegulations) {
+	      if (importedRegulations.hasOwnProperty(category)) {
+	        this.wordGenerationRule.set(category, importedRegulations[category]);
+	      }
+	    }
+	    
+	    return true;
+	  } catch (error) {
+	    console.error("規則のインポートでエラーが発生しました:", error);
+	    return false;
+	  }
+	}
+	
+	// 規則をUIに反映する
+	applyRegulationToUI(category, domManager) {
+	  const rule = this.getRegulation(category);
+	  if (!rule) return false;
+	  
+	  // 各設定項目に値を反映
+	  Object.keys(rule).forEach(key => {
+	    if (domManager.get(key)) {
+	      domManager.get(key).value = rule[key];
+	    }
+	  });
+	  
+	  return true;
+	}
 }
 
 // 単語生成を管理するクラス
@@ -971,6 +1026,16 @@ class App {
     if (e.target === this.domManager.get("method")) {
       this.uiManager.updateUIState();
     }
+		// ファイルインポートの変更イベント
+	  if (e.target === this.domManager.get("importRegulation")) {
+	    const fileInput = e.target;
+	    
+	    if (fileInput.files && fileInput.files[0]) {
+	      this.importRegulationFromFile(fileInput.files[0]);
+	      // ファイル選択をリセット（同じファイルを再選択できるように）
+	      fileInput.value = "";
+	    }
+	  }
   }
 
   // クリックイベントハンドラー
@@ -1010,6 +1075,11 @@ class App {
     else if (e.target === this.domManager.get("btnCopyResult")) {
       this.copyResultsToClipboard();
     }
+
+		// エクスポートボタンのクリックイベント
+		else if (e.target === this.domManager.get("btnExportRegulation")) {
+    	this.exportRegulationToFile();
+  	}
   }
 
   // ダブルクリックイベントハンドラー
@@ -1023,22 +1093,6 @@ class App {
   // キーダウンイベントハンドラー
   handleKeyDownEvents(e) {
 		// ショートカットなど
-		// ctrl+spaceで編集
-		if (e.ctrlKey && e.key === "/") {
-			this.uiManager.switchToEditMode();
-		}
-		// ctrl+Enterで編集を反映または単語生成
-		if (e.ctrlKey && e.key === "Enter") {
-			if (this.domManager.get("result").hidden) {
-				this.uiManager.applyEdit();
-			} else {
-				this.generateWords();
-			}
-		}
-		// ctrl+backspaceで結果削除
-		if (e.ctrlKey && e.key === "Backspace") {
-			this.confirmAndDeleteResults();
-		}
   }
 
   // 単語生成を実行
@@ -1067,7 +1121,7 @@ class App {
 
   // 結果をクリップボードにコピー
   copyResultsToClipboard() {
-    const resultText = this.domManager.get("result").textContent;
+    const resultText = this.domManager.get("result").innerText;
 
     if (!resultText.trim()) {
       alert("コピーする結果がありません。");
@@ -1110,7 +1164,96 @@ class App {
 
     document.body.removeChild(textArea);
   }
+
+	// 規則をJSONファイルとして保存
+	exportRegulationToFile() {
+	  const jsonData = this.regulationManager.exportRegulationToJSON();
+	  
+	  // Blobを作成してダウンロードリンクを生成
+	  const blob = new Blob([jsonData], { type: 'application/json' });
+	  const url = URL.createObjectURL(blob);
+	  
+	  // 一時的なリンク要素を作成してクリックをシミュレート
+	  const a = document.createElement('a');
+	  a.href = url;
+	  a.download = 'word_generation_rules.json';
+	  document.body.appendChild(a);
+	  a.click();
+	  
+	  // クリーンアップ
+	  setTimeout(() => {
+	    document.body.removeChild(a);
+	    URL.revokeObjectURL(url);
+	  }, 0);
+	}
+	
+	// JSONファイルから規則を読み込む
+	importRegulationFromFile(file) {
+	  // ファイルが選択されていない場合は処理しない
+	  if (!file) return;
+	  
+	  const reader = new FileReader();
+	  
+	  reader.onload = (event) => {
+	    try {
+	      const jsonData = event.target.result;
+	      const success = this.regulationManager.importRegulationFromJSON(jsonData);
+	      
+	      if (success) {
+	        // カテゴリ選択肢を更新
+	        this.updateCategorySelectionOptions();
+	        
+	        // デフォルトカテゴリを選択して設定を反映
+	        const categorySelection = this.domManager.get("categorySelection");
+	        categorySelection.value = "default";
+	        categorySelection.dataset.previousSelection = "default";
+	        
+	        // UIに規則を反映
+	        this.regulationManager.applyRegulationToUI("default", this.domManager);
+	        
+	        alert("規則を正常にインポートしました。");
+	      } else {
+	        alert("規則のインポートに失敗しました。JSONの形式を確認してください。");
+	      }
+	    } catch (error) {
+	      console.error("規則のインポート中にエラーが発生しました:", error);
+	      alert("規則のインポートに失敗しました。ファイル形式を確認してください。");
+	    }
+	  };
+	  
+	  reader.onerror = () => {
+	    alert("ファイルの読み込みに失敗しました。");
+	  };
+	  
+	  // ファイルをテキストとして読み込む
+	  reader.readAsText(file);
+	}
+	
+	// カテゴリ選択肢を更新するメソッド
+	updateCategorySelectionOptions() {
+	  const categorySelection = this.domManager.get("categorySelection");
+	  
+	  // 現在の選択肢をクリア
+	  categorySelection.innerHTML = '<option value="default">デフォルト</option>';
+	  
+	  // 規則マネージャーからすべてのカテゴリを取得
+	  for (const category of this.regulationManager.wordGenerationRule.keys()) {
+	    // デフォルト以外のカテゴリを選択肢に追加
+	    if (category !== "default") {
+	      const option = document.createElement("option");
+	      option.textContent = category;
+	      option.value = category;
+	      categorySelection.appendChild(option);
+	    }
+	  }
+	}
 }
+
+document.getElementById("import-regulation").addEventListener("change", function (e) {
+  const fileNameSpan = document.getElementById("file-name-display");
+  const file = e.target.files[0];
+  fileNameSpan.textContent = file ? file.name : "未選択";
+});
 
 // アプリケーションのインスタンス化と初期化
 document.addEventListener("DOMContentLoaded", () => {
