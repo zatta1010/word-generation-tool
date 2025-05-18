@@ -19,6 +19,10 @@ class DOMManager {
       categorySelection: $("category-selection"),
       customVocabList: $("custom-vocab-list"),
       dodgeRange: $("dodge-range"),
+			dodgeLenOfLevMin: $("dodge-len-of-lev-min"),
+			dodgeLenOfLevMax: $("dodge-len-of-lev-max"),
+			dodgeRangeOfCharsMin: $("dodge-range-of-chars-min"),
+			dodgeRangeOfCharsMax: $("dodge-range-of-chars-max"),
       wordCountInput: $("word-count-input"),
 
       // 文字制限関連
@@ -388,7 +392,7 @@ class WordGenerator {
     avoidMinimalPair() {
       const len = this.getNumberOfWordsToGenerate();
       let attempts = 0;
-      const maxAttempts = len * 30; // 無限ループ防止
+      const maxAttempts = len * 100; // 無限ループ防止
 
       for (let i = 0; i < len && attempts < maxAttempts; attempts++) {
         const word = this.getRandomWord();
@@ -505,22 +509,71 @@ class WordGenerator {
     return !recentWords.some(existingWord => this.isMinimalPair(word, existingWord));
   }
 
-  // 二つの単語がミニマルペアかチェック（より明確なロジック）
-  isMinimalPair(word1, word2) {
-    if (word1.length !== word2.length) return false;
-
-    let diffCount = 0;
-    const len = word1.length;
-
-    for (let i = 0; i < len; i++) {
-      if (word1[i] !== word2[i]) {
-        diffCount++;
-        if (diffCount > 1) return false; // 早期リターン
+  // レーベンシュタイン距離を計算する関数
+  calculateLevenshteinDistance(a, b) {
+    // 文字列が同一の場合は0を返す
+    if (a === b) return 0;
+    
+    // 文字列の長さを取得
+    const m = a.length;
+    const n = b.length;
+    
+    // どちらかが空文字列の場合、もう一方の長さを返す
+    if (m === 0) return n;
+    if (n === 0) return m;
+    
+    // 距離行列を初期化
+    let matrix = Array(m + 1);
+    for (let i = 0; i <= m; i++) {
+      matrix[i] = Array(n + 1);
+      matrix[i][0] = i;
+    }
+    for (let j = 0; j <= n; j++) {
+      matrix[0][j] = j;
+    }
+    
+    // 距離を計算
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i-1] === b[j-1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i-1][j] + 1,     // 削除
+          matrix[i][j-1] + 1,     // 挿入
+          matrix[i-1][j-1] + cost // 置換
+        );
       }
     }
-
-    return diffCount === 1;
+    
+    // 最終的な距離を返す
+    return matrix[m][n];
   }
+  
+	// WordGenerator クラスの isMinimalPair メソッドを修正
+	isMinimalPair(word1, word2) {
+	  // ミニマルペアの設定を取得
+	  const minLev = parseInt(this.domManager.get("dodgeLenOfLevMin").value, 10) || 1;
+	  const maxLev = parseInt(this.domManager.get("dodgeLenOfLevMax").value, 10) || 1;
+	  
+	  // 文字数範囲の設定を取得
+	  const minChars = parseInt(this.domManager.get("dodgeRangeOfCharsMin").value, 10) || 0;
+	  const maxChars = parseInt(this.domManager.get("dodgeRangeOfCharsMax").value, 10) || 1000;
+	  
+	  // 単語の長さをチェック
+	  const word1Length = word1.length;
+	  const word2Length = word2.length;
+	  
+	  // いずれかの単語が指定範囲外ならミニマルペアとして検出しない
+	  if (word1Length < minChars || word1Length > maxChars || 
+	      word2Length < minChars || word2Length > maxChars) {
+	    return false;
+	  }
+	  
+	  // レーベンシュタイン距離を計算
+	  const distance = this.calculateLevenshteinDistance(word1, word2);
+	  
+	  // 指定した距離の範囲内にあればミニマルペアとみなす
+	  return distance >= minLev && distance <= maxLev;
+	}
 
   // 単語が有効かチェック（バリデーション強化）
   isValid(word) {
@@ -859,7 +912,7 @@ class UIManager {
       // ミニマルペア回避範囲のバリデーション
       if (method.value === "avoidMinimalPair") {
         const range = parseInt(dodgeRange.value, 10);
-        if (isNaN(range) || range < 1 || range > 100) {
+        if (isNaN(range) || range < 1) {
           alert("ミニマルペアの回避範囲が不正です。1〜100の範囲で指定してください。");
           return false;
         }
@@ -1084,10 +1137,7 @@ class App {
 
   // ダブルクリックイベントハンドラー
   handleDblClickEvents(e) {
-    // 結果エリアのダブルクリックで編集モードに
-    if (e.target === this.domManager.get("result")) {
-      this.uiManager.switchToEditMode();
-    }
+		// 前は編集ができた
   }
 
   // キーダウンイベントハンドラー
