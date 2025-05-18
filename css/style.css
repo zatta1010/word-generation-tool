@@ -200,3 +200,79 @@ table th {
   font-weight: bold;
   color: #333;
 }
+
+/* 画面幅が768px以下のときに適用（タブレット・スマホ） */
+@media screen and (max-width: 768px) {
+  body {
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    padding-bottom: 6px;
+  }
+
+  fieldset {
+    padding: 16px;
+  }
+
+  .file-import-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  input[type="number"],
+	input[type="submit"],
+	.file-label {
+    width: 100%;
+  }
+
+	#detailed-setting {
+		width: 100%;
+		text-align: center;
+	}
+
+	.file-label {
+		margin-bottom: 10px;
+		text-align: center;
+	}
+
+  .range-inputs {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .file-name {
+		display: block;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-all;
+		text-align: center;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  table th,
+  table td {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  #result,
+  #txt-edit,
+  #table-edit {
+    font-size: 14px;
+    height: 250px;
+  }
+}
