@@ -73,8 +73,24 @@
     </label>
     <label for="dodge-range">
       <p>ミニマルペアの回避範囲：</p>
-      <input id="dodge-range" type="number" value="100" min="1" max="100" title="直近n単語のミニマルペアの回避">
+      <input id="dodge-range" type="number" value="100" min="1" title="直近n単語のミニマルペアの回避">
     </label>
+		<label for="dodge-len-of-lev-min">
+			<p>回避するレーベンシュタイン距離の範囲：</p>
+			<div class="range-inputs">
+				<input id="dodge-len-of-lev-min" type="number" min="1" value="1">
+				<span>〜</span>
+				<input id="dodge-len-of-lev-max" type="number" min="1" value="1">
+			</div>
+		</label>
+		<label for="dodge-range-of-chars-min">
+			<p>回避する文字数の範囲</p>
+			<div class="range-inputs">
+				<input id="dodge-range-of-chars-min" type="number" min="3" value="3">
+				<span>〜</span>
+				<input id="dodge-range-of-chars-max" type="number" min="3" value="10">
+			</div>
+		</label>
   </fieldset>
   <div id="detailed-setting" class="close">
     <span id="detailed-toggle-icon">＋</span>詳細設定
