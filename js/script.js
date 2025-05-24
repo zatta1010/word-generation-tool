@@ -384,6 +384,7 @@ class WordGenerator {
       }
 
       if (attempts >= maxAttempts) {
+				alert("重複しない単語の生成が困難です。条件を見直してください。");
         console.warn("重複しない単語の生成が困難です。条件を見直してください。");
       }
     },
@@ -642,6 +643,8 @@ class UIManager {
 
     // 条件に基づいて要素の有効/無効を切り替え
     dodgeRange.disabled = method.value !== "avoidMinimalPair";
+		dodgeRangeOfCharsMin.disabled = dodgeRangeOfCharsMax.disabled = method.value !== "avoidMinimalPair";
+		dodgeLenOfLevMin.disabled = dodgeLenOfLevMax.disabled = method.value !== "avoidMinimalPair";
     customVocabList.disabled = dictionarySelection.value !== "custom";
     wordCountInput.disabled = dictionarySelection.value !== "no";
     categorySelection.disabled = dictionarySelection.value === "no";
