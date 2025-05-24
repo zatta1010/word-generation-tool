@@ -640,6 +640,10 @@ class UIManager {
     const dictionarySelection = this.domManager.get("dictionarySelection");
     const wordCountInput = this.domManager.get("wordCountInput");
     const categorySelection = this.domManager.get("categorySelection");
+		const dodgeRangeOfCharsMin = this.domManager.get("dodgeRangeOfCharsMin");
+		const dodgeRangeOfCharsMax = this.domManager.get("dodgeRangeOfCharsMin");
+		const dodgeLenOfLevMin = this.domManager.get("dodgeLenOfLevMin");
+		const dodgeLenOfLevMax = this.domManager.get("dodgeLenOfLevMin");
 
     // 条件に基づいて要素の有効/無効を切り替え
     dodgeRange.disabled = method.value !== "avoidMinimalPair";
