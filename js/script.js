@@ -55,6 +55,10 @@ class DOMManager {
       tableEdit: $("table-edit"),
       result: $("result"),
 
+			// 辞書のjsonファイルを読み込む
+			importDict: $("import-dict"),
+			dictNameDisplay:$("dict-name-display"),
+
 			// 生成規則のjsonファイルを読み込む
 			importRegulation: $("import-regulation"),
 			btnExportRegulation: $("btn-export-regulation")
@@ -88,7 +92,9 @@ class DictionaryManager {
         categories: new Set()
       },
       custom: {
-        words: []
+        words: [],
+				tags: [],
+        categories: new Set()
       }
     };
   }
@@ -149,6 +155,31 @@ class DictionaryManager {
   getCurrentDictionary(dictionarySelectionValue) {
     return dictionarySelectionValue;
   }
+
+	loadCustomJson(jsonData) {
+	  if (!Array.isArray(jsonData)) {
+	    throw new Error("カスタム辞書は配列形式である必要があります");
+	  }
+	
+	  const words = [];
+	  const tags = [];
+	  const categories = new Set();
+	
+	  jsonData.forEach(entry => {
+	    if (entry.word) {
+	      words.push(entry.word);
+	      const entryTags = entry.tags || [];
+	      tags.push(entryTags);
+	      entryTags.forEach(tag => categories.add(tag));
+	    }
+	  });
+	
+	  this.dictionaries.custom = {
+	    words,
+	    tags,
+	    categories: Array.from(categories)
+	  };
+	}
 }
 
 // 単語生成ルールを管理するクラス
@@ -221,13 +252,10 @@ class RegulationManager {
     const dictionarySelection = this.domManager.get("dictionarySelection").value;
 
     // カスタム辞書または辞書なしの場合はデフォルト規則を返す
-    if (dictionarySelection === "no" || dictionarySelection === "custom") {
-      // ②②でdefaultを定義
-      this.saveRegulation("default", this.domManager);
-      const defaultRule = this.wordGenerationRule.get("default");
-
-      return defaultRule;
-    }
+    if (dictionarySelection === "no") {
+		  this.saveRegulation("default", this.domManager);
+		  return this.wordGenerationRule.get("default");
+		}
 
     // DictionaryManager.dictionariesで今選択されている辞書のwordsとtagsを取得する
     const dictionary = this.dictionaryManager.dictionaries[dictionarySelection];
@@ -341,10 +369,21 @@ class WordGenerator {
   }
 
   // 辞書更新
-  updateDictionary() {
-    const customVocabValue = this.domManager.get("customVocabList").value;
-    this.dictionaryManager.updateCustomDictionary(customVocabValue);
-  }
+	updateDictionary() {
+	  const dictionarySelection = this.domManager.get("dictionarySelection").value;
+	
+	  if (dictionarySelection === "custom") {
+	    const currentDict = this.dictionaryManager.dictionaries.custom;
+	    if (currentDict.words && currentDict.words.length > 0) {
+	      // JSONが読み込まれていれば、テキストエリアは無視
+	      return;
+	    }
+	  }
+	
+	  // JSON未読み込みならテキストエリアの内容を使う
+	  const customVocabValue = this.domManager.get("customVocabList").value;
+	  this.dictionaryManager.updateCustomDictionary(customVocabValue);
+	}
 
   // 単語を生成する各種方法
   generateMethods = {
@@ -596,26 +635,16 @@ class WordGenerator {
   }
 
   // 生成する単語数を取得
-  getNumberOfWordsToGenerate() {
-    const dictionarySelection = this.domManager.get("dictionarySelection");
-    const customVocabList = this.domManager.get("customVocabList");
-    const wordCountInput = this.domManager.get("wordCountInput");
-    const result = this.domManager.get("result");
-
-    // 独自生成の場合
-    if (dictionarySelection.value === "no" ||
-      (dictionarySelection.value === "custom" && !customVocabList.value)) {
-      return parseInt(wordCountInput.value, 10);
-    }
-    // 辞書ベースの場合
-    else {
-      if (!result.innerHTML.includes("<table>")) {
-        result.textContent = "";
-        this.clearResults();
-      }
-      return this.dictionaryManager.dictionaries[dictionarySelection.value].words.length;
-    }
-  }
+	getNumberOfWordsToGenerate() {
+	  const dictionarySelection = this.domManager.get("dictionarySelection").value;
+	
+	  if (dictionarySelection === "no") {
+	    return parseInt(this.domManager.get("wordCountInput").value, 10);
+	  }
+	
+	  const dict = this.dictionaryManager.dictionaries[dictionarySelection];
+	  return dict?.words?.length || 0;
+	}
 
   // 結果をクリア
   clearResults() {
@@ -702,30 +731,30 @@ class UIManager {
     let editTableHTML = "<table><thead><tr><th>単語</th><th>意味</th><th>カテゴリ</th></tr></thead><tbody>";
     let displayTableHTML = "<table><thead><tr><th>単語</th><th>意味</th><th>カテゴリ</th></tr></thead><tbody>";
 
-    // 各単語の情報を追加
-    wordList.forEach((word, i) => {
-      if (word) {
-        const dictType = dictionarySelection.value;
-        const dictionary = this.dictionaryManager.dictionaries[dictType];
-        const categoryText = dictType === "custom" ? "なし" : (dictionary.tags[i] || "なし");
-
-        // 編集用テーブル行
-        editTableHTML += `<tr>
-<td><input class="word-edit" type="text" value="${this.escapeHtml(word)}"></td>
-<td>${this.escapeHtml(dictionary.words[i] || "")}</td>
-<td>${this.escapeHtml(categoryText)}</td>
-</tr>`;
-
-        // 表示用テーブル行
-        displayTableHTML += `<tr>
-<td>${this.escapeHtml(word)}</td>
-<td>${this.escapeHtml(dictionary.words[i] || "")}</td>
-<td>${this.escapeHtml(categoryText)}</td>
-</tr>`;
-
-        txtEdit.value += word + "\n";
-      }
-    });
+    const dictType = dictionarySelection.value;
+		const dictionary = this.dictionaryManager.dictionaries[dictType];
+		
+		// 各単語の情報を追加
+		wordList.forEach((word, i) => {
+		  if (word) {
+		    const meaning = dictionary.words?.[i] || "";
+		    const categoryText = dictionary.tags?.[i]?.join?.(", ") || "なし";
+		
+		    editTableHTML += `<tr>
+		<td><input class="word-edit" type="text" value="${this.escapeHtml(word)}"></td>
+		<td>${this.escapeHtml(meaning)}</td>
+		<td>${this.escapeHtml(categoryText)}</td>
+		</tr>`;
+		
+		    displayTableHTML += `<tr>
+		<td>${this.escapeHtml(word)}</td>
+		<td>${this.escapeHtml(meaning)}</td>
+		<td>${this.escapeHtml(categoryText)}</td>
+		</tr>`;
+		
+		    txtEdit.value += word + "\n";
+		  }
+		});
 
     // テーブルのフッター部分
     editTableHTML += "</tbody></table>";
@@ -1008,6 +1037,53 @@ class App {
 
     // キーダウンイベントの管理
     document.addEventListener("keydown", this.handleKeyDownEvents.bind(this));
+
+		document.getElementById("import-regulation").addEventListener("change", function (e) {
+		  const fileNameSpan = document.getElementById("file-name-display");
+		  const file = e.target.files[0];
+		  fileNameSpan.textContent = file ? file.name : "未選択";
+		});
+		
+		const fileInput = this.domManager.get("importDict");
+		fileInput.addEventListener("change", (event) => {
+		  const file = event.target.files[0];
+		  if (!file) return;
+		
+		  const reader = new FileReader();
+		  const dictionaryManager = this.dictionaryManager; // thisを退避
+		
+		  reader.onload = (e) => {
+			  try {
+			    const jsonData = JSON.parse(e.target.result);
+			    dictionaryManager.loadCustomJson(jsonData);
+			    this.domManager.get("dictNameDisplay").innerText = file.name;
+			    this.domManager.get("dictionarySelection").value = "custom";
+			    this.domManager.get("categorySelection").disabled = false;
+			
+			    // カテゴリセレクタを更新
+			    const categorySelection = this.domManager.get("categorySelection");
+			    categorySelection.innerHTML = '<option value="default">デフォルト</option>';
+			
+			    const customCategories = dictionaryManager.dictionaries.custom.categories || [];
+			    customCategories.forEach(category => {
+			      const option = document.createElement("option");
+			      option.textContent = category;
+			      option.value = category;
+			      categorySelection.appendChild(option);
+
+						this.regulationManager.setRegulation(category, this.domManager);
+			    });
+			
+			    alert("カスタム辞書が読み込まれました。");
+			
+			  } catch (error) {
+			    console.error("辞書読み込みエラー:", error);
+			    alert("JSONの読み込みに失敗しました。フォーマットを確認してください。");
+			  }
+			};
+		
+		  reader.readAsText(file);
+		});
   }
 
   // 変更イベントハンドラー
@@ -1305,12 +1381,6 @@ class App {
 	  }
 	}
 }
-
-document.getElementById("import-regulation").addEventListener("change", function (e) {
-  const fileNameSpan = document.getElementById("file-name-display");
-  const file = e.target.files[0];
-  fileNameSpan.textContent = file ? file.name : "未選択";
-});
 
 // アプリケーションのインスタンス化と初期化
 document.addEventListener("DOMContentLoaded", () => {
