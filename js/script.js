@@ -975,8 +975,8 @@ class UIManager {
       // ミニマルペア回避が必要な場合
       if (this.domManager.get("method").value === "avoidMinimalPair") {
         const dodgeRange = parseInt(this.domManager.get("dodgeRange").value, 10);
-        if (isNaN(dodgeRange) || dodgeRange < 1 || dodgeRange > 100) {
-          alert("ミニマルペアの回避範囲が不正です。1〜100の範囲で指定してください。");
+        if (isNaN(dodgeRange) || dodgeRange < 1 || dodgeRange > 300) {
+          alert("ミニマルペアの回避範囲が不正です。1〜300の範囲で指定してください。");
           return false;
         }
       }
